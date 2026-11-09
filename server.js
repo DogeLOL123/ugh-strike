@@ -1,4 +1,19 @@
+#!/usr/bin/env node
 'use strict';
+/*
+ * UGH-STRIKE multiplayer server  (no dependencies - just Node 16+)
+ *
+ *   node server.js            -> http://localhost:8080  (serves the game + WebSocket lobby)
+ *   PORT=3000 node server.js  -> custom port
+ *
+ * Role: lobby + room manager + message relay. The room HOST's browser simulates the
+ * enemies in co-op; every player reports their own hits in deathmatch. The server
+ * validates rooms/hosts/sizes/rates but does not simulate gameplay.
+ *
+ * Put ugh-strike.html in the same folder as this file. Open http://<this-pc>:8080
+ * in every player's browser (same URL = the game connects back to this server).
+ * For internet play: host this on a VPS / Render / Fly / Railway (use wss:// behind HTTPS).
+ */
 const http = require('http'), fs = require('fs'), path = require('path'), crypto = require('crypto');
 
 const PORT = +process.env.PORT || 8080;
@@ -6,10 +21,46 @@ const GUID = '258EAFA5-E914-47DA-95CA-C5AB0DC85B11';
 const MAX_FRAME = 64 * 1024, MAX_ROOMS = 200, MAX_CONN = 600, COOP_MAX = 4, DM_MAX = 8;
 const GAME_FILE = path.join(__dirname, 'ugh-strike.html');
 
+// ---------- accounts (cloud saves) ----------
+// Stored in DATA_DIR/accounts.json. NOTE: on hosts with an ephemeral disk (Render free tier)
+// this file is wiped on redeploy/restart - attach a persistent disk and set DATA_DIR to it.
+const DATA_DIR = process.env.DATA_DIR || path.join(__dirname, 'data');
+try { fs.mkdirSync(DATA_DIR, { recursive: true }); } catch (e) {}
+const ACC_FILE = path.join(DATA_DIR, 'accounts.json');
+let accounts = {};
+try { accounts = JSON.parse(fs.readFileSync(ACC_FILE, 'utf8')); } catch (e) {}
+let accTimer = null;
+function saveAcc() {
+  if (accTimer) return;
+  accTimer = setTimeout(() => {
+    accTimer = null; const tmp = ACC_FILE + '.tmp';
+    fs.writeFile(tmp, JSON.stringify(accounts), err => { if (!err) fs.rename(tmp, ACC_FILE, () => {}); });
+  }, 2000);
+}
+const sha = s => crypto.createHash('sha256').update(s).digest('hex');
+const fails = new Map();
+const ipOf = c => String(c.ip || '');
+function rateOk(c) { const f = fails.get(ipOf(c)); return !(f && f.n >= 10 && Date.now() - f.t < 600000); }
+function failed(c) { const k = ipOf(c), f = fails.get(k); if (!f || Date.now() - f.t > 600000) fails.set(k, { n: 1, t: Date.now() }); else f.n++; }
+function cleanSV(o) {
+  if (!o || typeof o !== 'object') return null;
+  let s; try { s = JSON.stringify(o); } catch (e) { return null; }
+  if (s.length > 30000) return null;
+  const n = (v, lo, hi, d) => { v = Number(v); return Number.isFinite(v) ? Math.max(lo, Math.min(hi, Math.floor(v))) : d; };
+  const arr = (a, max) => Array.isArray(a) ? a.slice(0, 200).map(v => n(v, 0, max, 0)) : [];
+  const out = { xp: n(o.xp, 0, 1e7, 0), bones: n(o.bones, 0, 1e8, 0), prem: n(o.prem, 0, 1, 0), gs: n(o.gs, 0, 100, 0), as: n(o.as, 0, 100, 0),
+    cx: n(o.cx, 0, 100, 0), fx: n(o.fx, 0, 100, 0), gfx: n(o.gfx, 0, 1, 1), mute: n(o.mute, 0, 1, 0), sens: n(o.sens, 1, 10, 5),
+    og: arr(o.og, 100), oa: arr(o.oa, 100), oc: arr(o.oc, 100), of: arr(o.of, 100), cf: arr(o.cf, 200), cp: arr(o.cp, 200), lo: arr(o.lo, 60).slice(0, 3) };
+  out.L = (Array.isArray(o.L) ? o.L : []).slice(0, 40).map(l => ({ o: n(l && l.o, 0, 20, 0), b: n(l && l.b, 0, 20, 0), m: n(l && l.m, 0, 20, 0), g: n(l && l.g, 0, 20, 0), a: n(l && l.a, 0, 20, 0) }));
+  if (out.lo.length !== 3) out.lo = [2, 1, 0];
+  return out;
+}
+
 const rooms = new Map();
 const conns = new Set();
 let nextId = 1;
 
+// ---------- HTTP (serves the game itself) ----------
 const server = http.createServer((req, res) => {
   const url = (req.url || '/').split('?')[0];
   if (url === '/health') { res.writeHead(200, { 'content-type': 'text/plain' }); res.end('ok'); return; }
@@ -24,6 +75,7 @@ const server = http.createServer((req, res) => {
   res.writeHead(404, { 'content-type': 'text/plain' }); res.end('not found');
 });
 
+// ---------- minimal RFC6455 WebSocket ----------
 function frame(op, buf) {
   const n = buf.length; let h;
   if (n < 126) h = Buffer.from([0x80 | op, n]);
@@ -33,7 +85,7 @@ function frame(op, buf) {
 }
 function rawSend(c, buf) {
   if (c.sock.destroyed || !c.sock.writable) return;
-  if (c.sock.writableLength > 2 * 1024 * 1024) return;
+  if (c.sock.writableLength > 2 * 1024 * 1024) return; // slow client: drop instead of buffering forever
   c.sock.write(buf);
 }
 const send = (c, obj) => rawSend(c, frame(1, Buffer.from(JSON.stringify(obj))));
@@ -46,7 +98,7 @@ server.on('upgrade', (req, sock) => {
   const accept = crypto.createHash('sha1').update(key + GUID).digest('base64');
   sock.write('HTTP/1.1 101 Switching Protocols\r\nUpgrade: websocket\r\nConnection: Upgrade\r\nSec-WebSocket-Accept: ' + accept + '\r\n\r\n');
   sock.setNoDelay(true);
-  const c = { id: nextId++, sock, buf: Buffer.alloc(0), name: 'CAVEMAN', room: null, alive: true, frags: [], fop: 0, cnt: 0, said: false };
+  const c = { ip: String(req.headers['x-forwarded-for'] || sock.remoteAddress || '').split(',')[0].trim(), user: null, id: nextId++, sock, buf: Buffer.alloc(0), name: 'CAVEMAN', room: null, alive: true, frags: [], fop: 0, cnt: 0, said: false };
   conns.add(c);
   sock.on('data', d => { try { onData(c, d); } catch (e) { sock.destroy(); } });
   sock.on('error', () => sock.destroy());
@@ -80,6 +132,7 @@ function onData(c, chunk) {
   }
 }
 
+// ---------- lobby / rooms ----------
 const CODE_CHARS = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
 function newCode() {
   for (let t = 0; t < 50; t++) {
@@ -97,7 +150,7 @@ function leaveRoom(c) {
   r.players = r.players.filter(p => p !== c);
   if (!r.players.length) { rooms.delete(r.code); return; }
   if (r.host === c) {
-    if (r.started) {
+    if (r.started) { // the host runs the co-op simulation, so the match cannot outlive them
       r.players.forEach(p => { p.room = null; send(p, { t: 'closed', m: 'HOST LEFT THE ROOM' }); });
       rooms.delete(r.code); return;
     }
@@ -109,11 +162,58 @@ const int = (v, lo, hi, d) => { v = Math.floor(+v); return Number.isFinite(v) ? 
 
 function onMsg(c, text) {
   if (++c.cnt > 2500) { c.sock.destroy(); return; }
-  if (c.cnt > 400) return;
+  if (c.cnt > 400) return; // per-second flood guard (counter reset below)
   let m; try { m = JSON.parse(text); } catch (e) { return; }
   if (!m || typeof m !== 'object') return;
   switch (m.t) {
-    case 'hello': c.name = clean(m.name); c.said = true; send(c, { t: 'welcome', id: c.id }); break;
+    case 'hello': if (!c.user) c.name = clean(m.name); c.said = true; send(c, { t: 'welcome', id: c.id }); break;
+    case 'reg': {
+      const bad = e => send(c, { t: 'auth', ok: 0, mode: 'reg', err: e });
+      if (!rateOk(c)) return bad('TOO MANY TRIES - WAIT A FEW MINUTES');
+      const u = String(m.user || ''), p = String(m.pass || ''), k = u.toLowerCase();
+      if (!/^[A-Za-z0-9_]{3,16}$/.test(u)) return bad('USERNAME: 3-16 LETTERS, NUMBERS OR _');
+      if (p.length < 6 || p.length > 64) return bad('PASSWORD: 6-64 CHARACTERS');
+      if (accounts[k]) return bad('USERNAME TAKEN');
+      if (Object.keys(accounts).length >= 20000) return bad('SERVER FULL');
+      const salt = crypto.randomBytes(16).toString('hex');
+      crypto.scrypt(p, salt, 32, { N: 16384 }, (e, key) => {
+        if (e || accounts[k]) return bad('USERNAME TAKEN');
+        const tok = k + ':' + crypto.randomBytes(24).toString('hex');
+        accounts[k] = { name: u, salt, hash: key.toString('hex'), sv: cleanSV(m.sv), toks: [sha(tok)], created: Date.now() };
+        saveAcc(); c.user = k; c.name = u;
+        send(c, { t: 'auth', ok: 1, mode: 'reg', user: u, tok, sv: accounts[k].sv });
+      });
+      break;
+    }
+    case 'login': {
+      const bad = e => { failed(c); send(c, { t: 'auth', ok: 0, mode: 'login', err: e }); };
+      if (!rateOk(c)) return send(c, { t: 'auth', ok: 0, mode: 'login', err: 'TOO MANY TRIES - WAIT A FEW MINUTES' });
+      const k = String(m.user || '').toLowerCase(), a = accounts[k], p = String(m.pass || '').slice(0, 64);
+      if (!a) return bad('WRONG USERNAME OR PASSWORD');
+      crypto.scrypt(p, a.salt, 32, { N: 16384 }, (e, key) => {
+        if (e || !crypto.timingSafeEqual(key, Buffer.from(a.hash, 'hex'))) return bad('WRONG USERNAME OR PASSWORD');
+        const tok = k + ':' + crypto.randomBytes(24).toString('hex');
+        a.toks = (a.toks || []).slice(-7).concat(sha(tok)); saveAcc(); c.user = k; c.name = a.name;
+        send(c, { t: 'auth', ok: 1, mode: 'login', user: a.name, tok, sv: a.sv });
+      });
+      break;
+    }
+    case 'tok': {
+      const tok = String(m.tok || '').slice(0, 100), k = tok.split(':')[0], a = accounts[k];
+      if (a && (a.toks || []).includes(sha(tok))) { c.user = k; c.name = a.name; send(c, { t: 'auth', ok: 1, mode: 'tok', user: a.name, sv: a.sv }); }
+      else send(c, { t: 'auth', ok: 0, mode: 'tok', err: '' });
+      break;
+    }
+    case 'logout': {
+      const tok = String(m.tok || '').slice(0, 100), a = c.user && accounts[c.user];
+      if (a) { a.toks = (a.toks || []).filter(h => h !== sha(tok)); saveAcc(); }
+      c.user = null; break;
+    }
+    case 'sv': {
+      if (!c.user || !accounts[c.user]) break;
+      const sv = cleanSV(m.sv); if (sv) { accounts[c.user].sv = sv; saveAcc(); }
+      break;
+    }
     case 'list': {
       const l = [];
       rooms.forEach(r => { if (!r.started && r.players.length < DM_MAX) l.push({ code: r.code, host: r.host.name, n: r.players.length, mode: r.mode, map: r.map }); });
@@ -139,11 +239,11 @@ function onMsg(c, text) {
     case 'leave': leaveRoom(c); break;
     case 'cfg': {
       const r = c.room; if (!r || r.host !== c || r.started) break;
-      r.mode = int(m.mode, 0, 2, 0); r.map = int(m.map, 0, 3, 0); bcastRoom(r); break;
+      r.mode = int(m.mode, 0, 3, 0); r.map = int(m.map, 0, 7, 0); bcastRoom(r); break;
     }
     case 'start': {
       const r = c.room; if (!r || r.host !== c || r.started) break;
-      if (r.mode !== 2 && r.players.length > COOP_MAX) { send(c, { t: 'err', m: 'CO-OP IS MAX ' + COOP_MAX + ' PLAYERS' }); break; }
+      if (r.mode < 2 && r.players.length > COOP_MAX) { send(c, { t: 'err', m: 'CO-OP IS MAX ' + COOP_MAX + ' PLAYERS' }); break; }
       r.started = true;
       const msg = { t: 'start', mode: r.mode, map: r.map, seed: crypto.randomInt(1, 2 ** 31 - 1) };
       r.players.forEach(p => send(p, msg)); bcastRoom(r); break;
@@ -152,7 +252,7 @@ function onMsg(c, text) {
       const r = c.room; if (!r || r.host !== c || !r.started) break;
       r.started = false; bcastRoom(r); break;
     }
-    case 'm': {
+    case 'm': { // relay to the rest of the room (or one player)
       const r = c.room; if (!r || !r.started || !m.d || typeof m.d !== 'object') break;
       const out = frame(1, Buffer.from(JSON.stringify({ t: 'm', from: c.id, d: m.d })));
       if (m.to != null) { const p = r.players.find(q => q.id === m.to); if (p && p !== c) rawSend(p, out); }
@@ -168,4 +268,4 @@ setInterval(() => conns.forEach(c => {
   c.alive = false; rawSend(c, frame(9, Buffer.alloc(0)));
 }), 25000);
 
-server.listen(PORT, () => console.log('UGH-STRIKE server on port ' + PORT));
+server.listen(PORT, () => console.log('UGH-STRIKE server on http://localhost:' + PORT + '  (ws://localhost:' + PORT + ')'));
