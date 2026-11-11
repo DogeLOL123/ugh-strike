@@ -42,6 +42,34 @@ const fails = new Map();
 const ipOf = c => String(c.ip || '');
 function rateOk(c) { const f = fails.get(ipOf(c)); return !(f && f.n >= 10 && Date.now() - f.t < 600000); }
 function failed(c) { const k = ipOf(c), f = fails.get(k); if (!f || Date.now() - f.t > 600000) fails.set(k, { n: 1, t: Date.now() }); else f.n++; }
+// ---------- storage: Upstash Redis (persistent, set 2 env vars) or local file fallback ----------
+const UP_URL = (process.env.UPSTASH_REDIS_REST_URL || '').replace(/\/$/, ''), UP_TOK = process.env.UPSTASH_REDIS_REST_TOKEN || '';
+const useDB = !!(UP_URL && UP_TOK && typeof fetch === 'function');
+async function dbCmd(cmd) {
+  const r = await fetch(UP_URL, { method: 'POST', headers: { Authorization: 'Bearer ' + UP_TOK, 'content-type': 'application/json' }, body: JSON.stringify(cmd), signal: AbortSignal.timeout(8000) });
+  const j = await r.json(); if (j.error) throw new Error(j.error); return j.result;
+}
+const cache = new Map(), dirty = new Set();
+async function getAcc(k) {
+  if (cache.has(k)) return cache.get(k);
+  let a = null;
+  if (useDB) { const r = await dbCmd(['GET', 'acc:' + k]); a = r ? JSON.parse(r) : null; } else a = accounts[k] || null;
+  if (a) { if (cache.size > 2000) cache.delete(cache.keys().next().value); cache.set(k, a); }
+  return a;
+}
+async function createAcc(k, a) {
+  if (useDB) { const r = await dbCmd(['SET', 'acc:' + k, JSON.stringify(a), 'NX']); if (r !== 'OK') return false; }
+  else { if (accounts[k]) return false; accounts[k] = a; saveAcc(); }
+  cache.set(k, a); return true;
+}
+async function putAcc(k) {
+  const a = cache.get(k) || accounts[k]; if (!a) return;
+  if (useDB) await dbCmd(['SET', 'acc:' + k, JSON.stringify(a)]); else { accounts[k] = a; saveAcc(); }
+}
+async function flushDirty() { const ks = [...dirty]; dirty.clear(); for (const k of ks) { try { await putAcc(k); } catch (e) { dirty.add(k); console.error('save failed:', e.message); } } }
+setInterval(flushDirty, 15000);
+process.on('SIGTERM', () => { flushDirty().finally(() => process.exit(0)); });
+const scryptP = (p, s) => new Promise((res, rej) => crypto.scrypt(p, s, 32, { N: 16384 }, (e, k) => e ? rej(e) : res(k)));
 function cleanSV(o) {
   if (!o || typeof o !== 'object') return null;
   let s; try { s = JSON.stringify(o); } catch (e) { return null; }
@@ -49,7 +77,7 @@ function cleanSV(o) {
   const n = (v, lo, hi, d) => { v = Number(v); return Number.isFinite(v) ? Math.max(lo, Math.min(hi, Math.floor(v))) : d; };
   const arr = (a, max) => Array.isArray(a) ? a.slice(0, 200).map(v => n(v, 0, max, 0)) : [];
   const out = { xp: n(o.xp, 0, 1e7, 0), bones: n(o.bones, 0, 1e8, 0), prem: n(o.prem, 0, 1, 0), gs: n(o.gs, 0, 100, 0), as: n(o.as, 0, 100, 0),
-    cx: n(o.cx, 0, 100, 0), fx: n(o.fx, 0, 100, 0), gfx: n(o.gfx, 0, 1, 1), mute: n(o.mute, 0, 1, 0), sens: n(o.sens, 1, 10, 5),
+    cx: n(o.cx, 0, 100, 0), fx: n(o.fx, 0, 100, 0), vib: n(o.vib, 0, 1, 1), gfx: n(o.gfx, 0, 1, 1), mute: n(o.mute, 0, 1, 0), sens: n(o.sens, 1, 10, 5),
     og: arr(o.og, 100), oa: arr(o.oa, 100), oc: arr(o.oc, 100), of: arr(o.of, 100), cf: arr(o.cf, 200), cp: arr(o.cp, 200), lo: arr(o.lo, 60).slice(0, 3) };
   out.L = (Array.isArray(o.L) ? o.L : []).slice(0, 40).map(l => ({ o: n(l && l.o, 0, 20, 0), b: n(l && l.b, 0, 20, 0), m: n(l && l.m, 0, 20, 0), g: n(l && l.g, 0, 20, 0), a: n(l && l.a, 0, 20, 0) }));
   if (out.lo.length !== 3) out.lo = [2, 1, 0];
@@ -102,7 +130,7 @@ server.on('upgrade', (req, sock) => {
   conns.add(c);
   sock.on('data', d => { try { onData(c, d); } catch (e) { sock.destroy(); } });
   sock.on('error', () => sock.destroy());
-  sock.on('close', () => { conns.delete(c); leaveRoom(c); });
+  sock.on('close', () => { conns.delete(c); leaveRoom(c); if (c.user && dirty.has(c.user)) { dirty.delete(c.user); putAcc(c.user).catch(() => dirty.add(c.user)); } });
 });
 
 function onData(c, chunk) {
@@ -173,45 +201,48 @@ function onMsg(c, text) {
       const u = String(m.user || ''), p = String(m.pass || ''), k = u.toLowerCase();
       if (!/^[A-Za-z0-9_]{3,16}$/.test(u)) return bad('USERNAME: 3-16 LETTERS, NUMBERS OR _');
       if (p.length < 6 || p.length > 64) return bad('PASSWORD: 6-64 CHARACTERS');
-      if (accounts[k]) return bad('USERNAME TAKEN');
-      if (Object.keys(accounts).length >= 20000) return bad('SERVER FULL');
-      const salt = crypto.randomBytes(16).toString('hex');
-      crypto.scrypt(p, salt, 32, { N: 16384 }, (e, key) => {
-        if (e || accounts[k]) return bad('USERNAME TAKEN');
+      const sv = cleanSV(m.sv);
+      (async () => {
+        if (await getAcc(k)) return bad('USERNAME TAKEN');
+        const salt = crypto.randomBytes(16).toString('hex'), key = await scryptP(p, salt);
         const tok = k + ':' + crypto.randomBytes(24).toString('hex');
-        accounts[k] = { name: u, salt, hash: key.toString('hex'), sv: cleanSV(m.sv), toks: [sha(tok)], created: Date.now() };
-        saveAcc(); c.user = k; c.name = u;
-        send(c, { t: 'auth', ok: 1, mode: 'reg', user: u, tok, sv: accounts[k].sv });
-      });
+        const a = { name: u, salt, hash: key.toString('hex'), sv, toks: [sha(tok)], created: Date.now() };
+        if (!(await createAcc(k, a))) return bad('USERNAME TAKEN');
+        c.user = k; c.name = u; send(c, { t: 'auth', ok: 1, mode: 'reg', user: u, tok, sv });
+      })().catch(e => { console.error('reg:', e.message); bad('SERVER ERROR - TRY AGAIN'); });
       break;
     }
     case 'login': {
       const bad = e => { failed(c); send(c, { t: 'auth', ok: 0, mode: 'login', err: e }); };
       if (!rateOk(c)) return send(c, { t: 'auth', ok: 0, mode: 'login', err: 'TOO MANY TRIES - WAIT A FEW MINUTES' });
-      const k = String(m.user || '').toLowerCase(), a = accounts[k], p = String(m.pass || '').slice(0, 64);
-      if (!a) return bad('WRONG USERNAME OR PASSWORD');
-      crypto.scrypt(p, a.salt, 32, { N: 16384 }, (e, key) => {
-        if (e || !crypto.timingSafeEqual(key, Buffer.from(a.hash, 'hex'))) return bad('WRONG USERNAME OR PASSWORD');
+      const k = String(m.user || '').toLowerCase().slice(0, 16), p = String(m.pass || '').slice(0, 64);
+      (async () => {
+        const a = await getAcc(k); if (!a) return bad('WRONG USERNAME OR PASSWORD');
+        const key = await scryptP(p, a.salt);
+        if (!crypto.timingSafeEqual(key, Buffer.from(a.hash, 'hex'))) return bad('WRONG USERNAME OR PASSWORD');
         const tok = k + ':' + crypto.randomBytes(24).toString('hex');
-        a.toks = (a.toks || []).slice(-7).concat(sha(tok)); saveAcc(); c.user = k; c.name = a.name;
-        send(c, { t: 'auth', ok: 1, mode: 'login', user: a.name, tok, sv: a.sv });
-      });
+        a.toks = (a.toks || []).slice(-7).concat(sha(tok)); await putAcc(k);
+        c.user = k; c.name = a.name; send(c, { t: 'auth', ok: 1, mode: 'login', user: a.name, tok, sv: a.sv });
+      })().catch(e => { console.error('login:', e.message); send(c, { t: 'auth', ok: 0, mode: 'login', err: 'SERVER ERROR - TRY AGAIN' }); });
       break;
     }
     case 'tok': {
-      const tok = String(m.tok || '').slice(0, 100), k = tok.split(':')[0], a = accounts[k];
-      if (a && (a.toks || []).includes(sha(tok))) { c.user = k; c.name = a.name; send(c, { t: 'auth', ok: 1, mode: 'tok', user: a.name, sv: a.sv }); }
-      else send(c, { t: 'auth', ok: 0, mode: 'tok', err: '' });
+      const tok = String(m.tok || '').slice(0, 100), k = tok.split(':')[0].slice(0, 16);
+      (async () => {
+        const a = await getAcc(k);
+        if (a && (a.toks || []).includes(sha(tok))) { c.user = k; c.name = a.name; send(c, { t: 'auth', ok: 1, mode: 'tok', user: a.name, sv: a.sv }); }
+        else send(c, { t: 'auth', ok: 0, mode: 'tok', err: '' });
+      })().catch(() => send(c, { t: 'auth', ok: 0, mode: 'tok', err: '', keep: 1 }));
       break;
     }
     case 'logout': {
-      const tok = String(m.tok || '').slice(0, 100), a = c.user && accounts[c.user];
-      if (a) { a.toks = (a.toks || []).filter(h => h !== sha(tok)); saveAcc(); }
-      c.user = null; break;
+      const tok = String(m.tok || '').slice(0, 100), k = c.user; c.user = null;
+      if (k) (async () => { const a = await getAcc(k); if (a) { a.toks = (a.toks || []).filter(h => h !== sha(tok)); await putAcc(k); } })().catch(() => {});
+      break;
     }
     case 'sv': {
-      if (!c.user || !accounts[c.user]) break;
-      const sv = cleanSV(m.sv); if (sv) { accounts[c.user].sv = sv; saveAcc(); }
+      const k = c.user; if (!k) break; const sv = cleanSV(m.sv); if (!sv) break;
+      (async () => { const a = await getAcc(k); if (a) { a.sv = sv; dirty.add(k); } })().catch(() => {});
       break;
     }
     case 'list': {
@@ -268,4 +299,4 @@ setInterval(() => conns.forEach(c => {
   c.alive = false; rawSend(c, frame(9, Buffer.alloc(0)));
 }), 25000);
 
-server.listen(PORT, () => console.log('UGH-STRIKE server on http://localhost:' + PORT + '  (ws://localhost:' + PORT + ')'));
+server.listen(PORT, () => console.log('UGH-STRIKE server on port ' + PORT + ' | accounts stored in: ' + (useDB ? 'Upstash Redis (persistent)' : 'local file (NOT persistent on free hosts)')));
