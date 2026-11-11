@@ -43,8 +43,13 @@ const ipOf = c => String(c.ip || '');
 function rateOk(c) { const f = fails.get(ipOf(c)); return !(f && f.n >= 10 && Date.now() - f.t < 600000); }
 function failed(c) { const k = ipOf(c), f = fails.get(k); if (!f || Date.now() - f.t > 600000) fails.set(k, { n: 1, t: Date.now() }); else f.n++; }
 // ---------- storage: Upstash Redis (persistent, set 2 env vars) or local file fallback ----------
-const UP_URL = (process.env.UPSTASH_REDIS_REST_URL || '').replace(/\/$/, ''), UP_TOK = process.env.UPSTASH_REDIS_REST_TOKEN || '';
+const envv = (...ns) => { for (const n of ns) { const v = (process.env[n] || '').trim().replace(/^["']|["']$/g, ''); if (v) return v; } return ''; };
+let UP_URL = envv('UPSTASH_REDIS_REST_URL', 'KV_REST_API_URL', 'UPSTASH_REST_URL').replace(/\/+$/, '');
+if (UP_URL && !/^https?:\/\//i.test(UP_URL)) UP_URL = 'https://' + UP_URL;
+const UP_TOK = envv('UPSTASH_REDIS_REST_TOKEN', 'KV_REST_API_TOKEN', 'UPSTASH_REST_TOKEN');
 const useDB = !!(UP_URL && UP_TOK && typeof fetch === 'function');
+console.log('[storage check] node ' + process.version + ' | fetch: ' + (typeof fetch === 'function' ? 'yes' : 'NO (need Node 18+)') + ' | URL var: ' + (UP_URL ? 'found (' + UP_URL.slice(0, 22) + '...)' : 'MISSING') + ' | TOKEN var: ' + (UP_TOK ? 'found' : 'MISSING'));
+if (useDB) dbCmd(['PING']).then(r => console.log('[storage check] Upstash connection OK: ' + r), e => console.log('[storage check] Upstash connection FAILED: ' + e.message + ' (check the URL and token are copied from the REST API section)'));
 async function dbCmd(cmd) {
   const r = await fetch(UP_URL, { method: 'POST', headers: { Authorization: 'Bearer ' + UP_TOK, 'content-type': 'application/json' }, body: JSON.stringify(cmd), signal: AbortSignal.timeout(8000) });
   const j = await r.json(); if (j.error) throw new Error(j.error); return j.result;
