@@ -60,7 +60,7 @@ h1{font-size:clamp(44px,9vw,96px);margin:0;color:#e9c46a;text-shadow:4px 4px 0 #
 <div id="xh">✛</div><div id="hm">✖</div><div id="dm"></div>
 </div>
 <div id="ov"><h1 id="t">UGH-STRIKE</h1><p id="sb" style="font-size:24px;margin:0">Cave-bros fight with BOOM-STICKS! Pick a rock-place:</p><div id="mp"></div>
-<p class="hint">KEYBOARD: WASD move · MOUSE look · CLICK shoot · RIGHT-CLICK aim · R reload · 1-7 / WHEEL swap gun · Z X M gun-mods · SHIFT run · C crouch · SHIFT then C slide · F melee · SPACE jump<br>CONTROLLER: L-STICK move · R-STICK look · RT shoot · LT aim · A jump · B crouch / slide · BACK melee · X reload · LB/RB swap gun · D-PAD ↑ optic ← barrel → mag ↓ grip · R3 ammo · L3 run · START pause + customize · MENUS: D-PAD / L-STICK move, A select, B back, LB/RB tabs</p></div>
+<p class="hint">KEYBOARD: WASD move · MOUSE look · CLICK shoot · RIGHT-CLICK aim · R reload · 1-7 / WHEEL swap gun · T chat · hold V voice · SHIFT run · C crouch · SHIFT then C slide · F melee · SPACE jump<br>CONTROLLER: L-STICK move · R-STICK look · RT shoot · LT aim · A jump · B crouch / slide · BACK melee · X reload · LB/RB swap gun · R3 ammo · L3 run · START pause · MENUS: D-PAD / L-STICK move, A select, B back, LB/RB tabs</p></div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script><script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/EffectComposer.js"></script><script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/shaders/CopyShader.js"></script><script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/shaders/LuminosityHighPassShader.js"></script><script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/ShaderPass.js"></script><script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/MaskPass.js"></script><script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/RenderPass.js"></script><script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/UnrealBloomPass.js"></script>
 <script>
 const lockPtr=()=>{try{const r=cv.requestPointerLock();if(r&&r.catch)r.catch(()=>{})}catch(e){}};
@@ -1201,6 +1201,47 @@ pPass=function(mp){const q=lvl(),lv=q.l,PER=8,NP=8;
 .bpcard.lk{filter:saturate(.45) brightness(.8)}.bpcard.got{filter:brightness(.7)}.bpcard.rdy{outline:3px solid #6fff9a;box-shadow:0 0 14px #6fff9a}.bpcard.on{outline:4px solid #fff!important}
 .sw{display:flex;align-items:center;justify-content:center;width:64px;height:64px;border:3px solid #000;box-shadow:2px 2px 0 #000;font-style:normal;font-size:34px;background:#0006}.sw.gl{color:#fff;text-shadow:0 0 10px #fff}
 `;document.head.appendChild(s)})();
+
+// ======== v10: gun mods locked in-game, text chat (T), push-to-talk voice (hold V), owner gold name ========
+{const st=document.createElement('style');st.textContent=`#chat{position:fixed;left:12px;bottom:70px;z-index:62;width:min(420px,60vw);pointer-events:none;font-size:17px;text-shadow:2px 2px 0 #000;color:#f2e8cf}#chat div{transition:opacity .8s;margin-top:2px;word-break:break-word}#chat b{font-weight:700}
+#ci{position:fixed;left:12px;bottom:36px;z-index:63;width:min(420px,60vw);background:rgba(20,14,8,.9);border:2px solid #b8935a;color:#f2e8cf;font:17px inherit;padding:6px 10px;outline:none}
+#mic{position:fixed;right:14px;bottom:14px;z-index:62;background:rgba(20,14,8,.85);border:2px solid #7c6a4a;color:#f2e8cf;padding:6px 10px;font-size:15px;display:none}#mic.on{border-color:#6fd16f;color:#9cf09c}`;document.head.append(st)}
+// gun mods are menu-only now
+const _cyc10=cyc;cyc=function(k,n){if(state=='play')return;_cyc10(k,n)};
+function pauseMods(mp){mp.append(dv('hdr','GUN MODS ARE LOCKED IN A FIGHT'),dv('','Change them in the ARMORY.'))}
+// ---------- text chat ----------
+const CH=document.createElement('div');CH.id='chat';document.body.append(CH);
+const CI=document.createElement('input');CI.id='ci';CI.maxLength=120;CI.hidden=true;CI.placeholder='Say something... ENTER send · ESC cancel';document.body.append(CI);
+const MIC=document.createElement('div');MIC.id='mic';document.body.append(MIC);
+let chatOn=false;
+const isGold=id=>{const p=NET.players.find(q=>q.id===id);return !!(p&&p.gold)};
+function chatLine(id,txt){const d=document.createElement('div'),n=document.createElement('b');n.textContent=(isGold(id)?'★ ':'')+pname(id)+': ';n.style.color=isGold(id)?'#ffd24a':'#e9c46a';d.append(n,document.createTextNode(txt));CH.append(d);while(CH.children.length>8)CH.removeChild(CH.firstChild);setTimeout(()=>{d.style.opacity=0},14000);setTimeout(()=>d.remove(),15000)}
+function chatClose(){chatOn=false;CI.hidden=true;CI.blur()}
+function chatOpen(){if(!NET.on||state!='play'||paused)return;chatOn=true;for(const k in K)K[k]=0;CI.hidden=false;CI.value='';CI.focus()}
+CI.addEventListener('keydown',e=>{e.stopPropagation();if(e.code=='Enter'){const t=CI.value.trim().slice(0,120);if(t){chatLine(NET.id,t);netSend({t:'ct',x:t})}chatClose()}else if(e.code=='Escape')chatClose()});
+CI.addEventListener('keyup',e=>e.stopPropagation());
+addEventListener('keydown',e=>{if(e.code=='KeyT'&&!chatOn&&!e.repeat&&NET.on&&state=='play'&&!paused){e.preventDefault();chatOpen()}});
+// ---------- voice (WebRTC, peer to peer; hold V to talk) ----------
+const VC={pc:{},au:{},track:null,busy:0},ICE={iceServers:[{urls:'stun:stun.l.google.com:19302'},{urls:'stun:stun1.l.google.com:19302'}]};
+function vcReset(){for(const id in VC.pc){try{VC.pc[id].close()}catch(e){}}for(const id in VC.au){try{VC.au[id].srcObject=null}catch(e){}}VC.pc={};VC.au={};if(VC.track){try{VC.track.stop()}catch(e){}VC.track=null}MIC.style.display='none'}
+function vcPeer(id){if(VC.pc[id])return VC.pc[id];const pc=new RTCPeerConnection(ICE);pc._q=[];VC.pc[id]=pc;
+ pc.onicecandidate=e=>{if(e.candidate)netSend({t:'vc',c:e.candidate},id)};
+ pc.ontrack=e=>{let a=VC.au[id];if(!a){a=new Audio();a.autoplay=true;VC.au[id]=a}a.srcObject=e.streams[0]||new MediaStream([e.track]);a.play().catch(()=>{})};return pc}
+function vcAttach(pc){if(!VC.track)return;pc.getTransceivers().forEach(t=>{if(t.receiver.track&&t.receiver.track.kind=='audio'){t.direction='sendrecv';t.sender.replaceTrack(VC.track).catch(()=>{})}})}
+async function vcCall(id){try{const pc=vcPeer(id);pc.addTransceiver('audio',{direction:'sendrecv'});await pc.setLocalDescription(await pc.createOffer());netSend({t:'vc',s:pc.localDescription},id)}catch(e){}}
+async function vcSig(from,d){try{const pc=vcPeer(from);if(d.s){await pc.setRemoteDescription(d.s);for(const c of pc._q.splice(0))await pc.addIceCandidate(c).catch(()=>{});
+  if(d.s.type=='offer'){pc.getTransceivers().forEach(t=>t.direction='sendrecv');await pc.setLocalDescription(await pc.createAnswer());netSend({t:'vc',s:pc.localDescription},from);vcAttach(pc)}}
+ else if(d.c){if(pc.remoteDescription)await pc.addIceCandidate(d.c).catch(()=>{});else pc._q.push(d.c)}}catch(e){}}
+async function micStart(){if(VC.track||VC.busy||!navigator.mediaDevices)return;VC.busy=1;try{const s=await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:true,noiseSuppression:true,autoGainControl:true}});VC.track=s.getAudioTracks()[0];VC.track.enabled=!!VC.hold;for(const id in VC.pc)vcAttach(VC.pc[id])}catch(e){logMsg('Mic blocked - allow the microphone to use voice chat','#e76f51')}VC.busy=0}
+function micShow(){MIC.style.display=NET.on&&state=='play'?'block':'none';MIC.className=VC.hold&&VC.track?'on':'';MIC.textContent=VC.hold&&VC.track?'🎤 TALKING':'🎤 hold V to talk · T chat'}
+addEventListener('keydown',e=>{if(e.code!='KeyV'||e.repeat||chatOn||!NET.on||state!='play'||paused)return;VC.hold=1;if(!VC.track)micStart();else VC.track.enabled=true;micShow()});
+addEventListener('keyup',e=>{if(e.code!='KeyV')return;VC.hold=0;if(VC.track)VC.track.enabled=false;micShow()});
+const _netData10=netData;netData=function(from,d){if(d&&d.t=='ct'){chatLine(from,String(d.x||'').slice(0,120));return}if(d&&d.t=='vc'){vcSig(from,d);return}_netData10(from,d)};
+const _netInit10=netInit;netInit=function(){_netInit10();vcReset();VC.hold=0;CH.textContent='';if(window.RTCPeerConnection)NET.players.forEach(p=>{if(p.id!==NET.id&&NET.id<p.id)vcCall(p.id)});micShow();logMsg('T = chat · hold V = voice','#e9c46a')};
+setInterval(()=>{if(chatOn&&(!NET.on||state!='play'||paused))chatClose();if(!NET.on&&(Object.keys(VC.pc).length||VC.track))vcReset();if(!NET.on||state!='play')MIC.style.display='none'},700);
+// ---------- gold name for the owner ----------
+function mkRP(id,name,i){const g=mkE(0,0,100,1),u=g.userData,gd=isGold(id),col=NET.ctf?(i%2?0x3a7bd5:0xd53a3a):PAL[i%PAL.length];u.player=id;u.rise=0;u.mats[1].color.setHex(col);const l=mkTag(gd?'★ '+name:name,gd?'#ffd24a':hexs(col));l.position.y=3.2;g.add(l);scene.add(g);
+ RP[id]={id,name,i,team:i%2,tag:l,m:g,x:0,z:0,tx:0,tz:0,yaw:0,hp:100,alive:true,jh:0,seen:0,atk:0,gun:0}}
 
 applyCX();if(location.protocol.startsWith('http'))setTimeout(netConnect,300);
 build(0);ov('UGH-STRIKE','Cave-bros vs BOOM-STICKS! Pick a mode and a rock-place:',1);
