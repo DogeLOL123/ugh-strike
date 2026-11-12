@@ -279,7 +279,7 @@ function onMsg(c, text) {
     case 'leave': leaveRoom(c); break;
     case 'cfg': {
       const r = c.room; if (!r || r.host !== c || r.started) break;
-      r.mode = int(m.mode, 0, 3, 0); r.map = int(m.map, 0, 7, 0); bcastRoom(r); break;
+      r.mode = int(m.mode, 0, 3, 0); r.map = int(m.map, 0, 11, 0); bcastRoom(r); break;
     }
     case 'start': {
       const r = c.room; if (!r || r.host !== c || r.started) break;
