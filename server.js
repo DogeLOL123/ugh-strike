@@ -179,7 +179,7 @@ const clean = n => String(n == null ? '' : n).replace(/[^\w \-.!?]/g, '').trim()
 const OWNER = String(process.env.OWNER_NAME || '').trim().toLowerCase();
 const isOwner = n => !!OWNER && String(n).toLowerCase() === OWNER;
 console.log('[owner check] OWNER_NAME ' + (OWNER ? 'is set to "' + OWNER + '"' : 'is NOT set - owner unlock is off'));
-function roomInfo(r) { return { t: 'room', code: r.code, host: r.host.id, players: r.players.map(p => ({ id: p.id, name: p.name })), mode: r.mode, map: r.map, started: r.started }; }
+function roomInfo(r) { return { t: 'room', code: r.code, host: r.host.id, players: r.players.map(p => ({ id: p.id, name: p.name, gold: !!(p.user && isOwner(p.name)) })), mode: r.mode, map: r.map, started: r.started }; }
 function bcastRoom(r) { const m = roomInfo(r); r.players.forEach(p => send(p, m)); }
 function leaveRoom(c) {
   const r = c.room; if (!r) return;
