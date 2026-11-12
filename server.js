@@ -175,6 +175,10 @@ function newCode() {
   return null;
 }
 const clean = n => String(n == null ? '' : n).replace(/[^\w \-.!?]/g, '').trim().slice(0, 16) || 'CAVEMAN';
+// Set OWNER_NAME (your account username) in Render's Environment tab to unlock everything for you only.
+const OWNER = String(process.env.OWNER_NAME || '').trim().toLowerCase();
+const isOwner = n => !!OWNER && String(n).toLowerCase() === OWNER;
+console.log('[owner check] OWNER_NAME ' + (OWNER ? 'is set to "' + OWNER + '"' : 'is NOT set - owner unlock is off'));
 function roomInfo(r) { return { t: 'room', code: r.code, host: r.host.id, players: r.players.map(p => ({ id: p.id, name: p.name })), mode: r.mode, map: r.map, started: r.started }; }
 function bcastRoom(r) { const m = roomInfo(r); r.players.forEach(p => send(p, m)); }
 function leaveRoom(c) {
@@ -213,7 +217,7 @@ function onMsg(c, text) {
         const tok = k + ':' + crypto.randomBytes(24).toString('hex');
         const a = { name: u, salt, hash: key.toString('hex'), sv, toks: [sha(tok)], created: Date.now() };
         if (!(await createAcc(k, a))) return bad('USERNAME TAKEN');
-        c.user = k; c.name = u; send(c, { t: 'auth', ok: 1, mode: 'reg', user: u, tok, sv });
+        c.user = k; c.name = u; send(c, { t: 'auth', ok: 1, mode: 'reg', user: u, tok, sv, owner: isOwner(u) });
       })().catch(e => { console.error('reg:', e.message); bad('SERVER ERROR - TRY AGAIN'); });
       break;
     }
@@ -227,7 +231,7 @@ function onMsg(c, text) {
         if (!crypto.timingSafeEqual(key, Buffer.from(a.hash, 'hex'))) return bad('WRONG USERNAME OR PASSWORD');
         const tok = k + ':' + crypto.randomBytes(24).toString('hex');
         a.toks = (a.toks || []).slice(-7).concat(sha(tok)); await putAcc(k);
-        c.user = k; c.name = a.name; send(c, { t: 'auth', ok: 1, mode: 'login', user: a.name, tok, sv: a.sv });
+        c.user = k; c.name = a.name; send(c, { t: 'auth', ok: 1, mode: 'login', user: a.name, tok, sv: a.sv, owner: isOwner(a.name) });
       })().catch(e => { console.error('login:', e.message); send(c, { t: 'auth', ok: 0, mode: 'login', err: 'SERVER ERROR - TRY AGAIN' }); });
       break;
     }
@@ -235,7 +239,7 @@ function onMsg(c, text) {
       const tok = String(m.tok || '').slice(0, 100), k = tok.split(':')[0].slice(0, 16);
       (async () => {
         const a = await getAcc(k);
-        if (a && (a.toks || []).includes(sha(tok))) { c.user = k; c.name = a.name; send(c, { t: 'auth', ok: 1, mode: 'tok', user: a.name, sv: a.sv }); }
+        if (a && (a.toks || []).includes(sha(tok))) { c.user = k; c.name = a.name; send(c, { t: 'auth', ok: 1, mode: 'tok', user: a.name, sv: a.sv, owner: isOwner(a.name) }); }
         else send(c, { t: 'auth', ok: 0, mode: 'tok', err: '' });
       })().catch(() => send(c, { t: 'auth', ok: 0, mode: 'tok', err: '', keep: 1 }));
       break;
