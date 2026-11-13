@@ -558,7 +558,7 @@ function netStep(dt){
  else{buildTG(dt);for(const e of es)updE(e,dt)}
  if(NET.on)netIO(dt)}
 function netIO(dt){
- NET.sendT-=dt;if(NET.sendT<=0){NET.sendT=.066;netSend({t:'p',x:+P.x.toFixed(2),z:+P.z.toFixed(2),y:+yaw.toFixed(2),h:Math.round(hp),j:+jh.toFixed(2),g:gi,c:crchA>.5?1:0,a:NET.dead?0:1})}
+ NET.sendT-=dt;if(NET.sendT<=0){NET.sendT=.066;netSend({t:'p',x:+P.x.toFixed(2),z:+P.z.toFixed(2),y:+yaw.toFixed(2),h:Math.round(hp),j:+jh.toFixed(2),g:gi,c:crchA>.5?1:0,o:SV.ot||0,a:NET.dead?0:1})}
  if(NET.host&&!NET.dm){NET.snapT-=dt;if(NET.snapT<=0){NET.snapT=.1;if(es.length||barr.length)netSend({t:'es',l:es.map(e=>{const u=e.userData,p=e.position;return[u.id,u.t,u.z?1:0,+p.x.toFixed(2),+p.z.toFixed(2),+e.rotation.y.toFixed(2),Math.max(0,Math.round(u.hp/(u.mh||u.hp||1)*100)),u.at>0?1:0,u.hit>0?1:0,u.rise>0?1:0]}),b:barr.map(b=>[b.i,b.pl])})}}
  for(const id in RP){const r=RP[id];if(!r.seen)continue;const k=Math.min(1,dt*14),ox=r.x,oz=r.z;r.x+=(r.tx-r.x)*k;r.z+=(r.tz-r.z)*k;const m=r.m;m.position.set(r.x,r.jh,r.z);{const hv=Math.max(0,Math.round(r.hp));if(Math.abs(hv-r.tag.userData.hp)>=3)drawTag(r.tag,hv)}
   let a=r.yaw+Math.PI-m.rotation.y;a=Math.atan2(Math.sin(a),Math.cos(a));m.rotation.y+=a*Math.min(1,dt*12);const u=m.userData;u.at=r.atk;r.atk=Math.max(0,r.atk-dt*2.5);u.crc=(u.crc||0)+((r.crc||0)-(u.crc||0))*Math.min(1,dt*10);animChar(u,Math.hypot(r.x-ox,r.z-oz)/Math.max(dt,.001),dt)}
@@ -1334,11 +1334,11 @@ function bossShot(e,d,q){const p=e.position,y=e.rotation.y,ox=p.x+Math.sin(y)*1.
 // ---- controller: VIEW (two squares) = dev menu, R3 = melee ----
 let dbgI=0;
 function dbgPad(){const bs=[...dbgEl.querySelectorAll('button')];if(!bs.length)return;const e=gp.e;dbgI=Math.max(0,Math.min(bs.length-1,dbgI));if(e[12])dbgI=snav(bs,dbgI,0,-1);if(e[13])dbgI=snav(bs,dbgI,0,1);if(e[14])dbgI=snav(bs,dbgI,-1,0);if(e[15])dbgI=snav(bs,dbgI,1,0);bs.forEach((b,i)=>b.style.outline=i==dbgI?'3px solid #f2a900':'');bs[dbgI].scrollIntoView({block:'nearest'});if(e[0])bs[dbgI].click();if(e[1])dbgClose()}
-const _upd11=upd;upd=function(dt){if(OWNER&&state=='play'&&gp.e&&gp.e[8]){if(dbgEl&&dbgEl.style.display=='block')dbgClose();else dbgOpen()}else if(dbgEl&&dbgEl.style.display=='block'&&state=='play')dbgPad();_upd11(dt)};
+
 
 // ======== v12: BASE CAMP - realistic hub (separate scene), 3-button menu, traders, ownership of guns/mods/clothes/heals ========
 // ---------- ownership ----------
-function fixSV(){if(!SV.ogn)SV.ogn=G.map((g,i)=>i).filter(i=>i<3||lvl().l>=(G[i].ul||0));if(!SV.omd){const s=new Set();L.forEach(l=>{if(l)['o','b','m','g','a'].forEach((k,ki)=>{if(l[k])s.add(ki*10+l[k])})});SV.omd=[...s]}if(!SV.hi||SV.hi.length<3)SV.hi=[0,0,0]}
+function fixSV(){if(!SV.ogn)SV.ogn=G.map((g,i)=>i).filter(i=>i<3||lvl().l>=(G[i].ul||0));if(!SV.omd){const s=new Set();L.forEach(l=>{if(l)['o','b','m','g','a'].forEach((k,ki)=>{if(l[k])s.add(ki*10+l[k])})});SV.omd=[...s]}if(!SV.hi||SV.hi.length<3)SV.hi=[0,0,0];if(!SV.oo)SV.oo=[0];if(SV.ot==null)SV.ot=0}
 const gunOwned=i=>OWNER||i<3||!(G[i].ul>1)||(SV.ogn||[]).includes(i);
 const gunOk=(i,lv)=>(lv==null?lvl().l:lv)>=(G[i].ul||0)&&gunOwned(i);
 const MK=['o','b','m','g','a'],modOk=(k,i)=>OWNER||!i||(SV.omd||[]).includes(MK.indexOf(k)*10+i);
@@ -1604,7 +1604,7 @@ function buyIt(p,fn){if(SV.bones<p)return;SV.bones-=p;fn();save();shopRender()}
 function shopRender(){const w=CAMP.who,el=$('cshop'),sy=el.scrollTop;el.innerHTML='';const top=document.createElement('div');top.className='top';top.innerHTML='<div><h2>'+TITLE[w]+'</h2><div class="q">“'+QUOTE[w]+'”</div></div><div class="bn">🦴 '+SV.bones+'</div>';const cl=document.createElement('button');cl.textContent='LEAVE ✕';cl.style.cssText='font:inherit;font-size:20px;letter-spacing:2px;background:#2c342f;color:#fff;border:1px solid #ffffff30;padding:4px 14px;cursor:pointer';cl.onclick=shopClose;top.append(cl);el.append(top);
  shopItems(w).forEach(sec=>{const h=document.createElement('div');h.className='sc';h.textContent=sec.h;el.append(h);const gr=document.createElement('div');gr.className='gr';sec.list.forEach(it=>{const c=document.createElement('div');c.className='cd'+(it.st=='own'||it.st=='eqd'||it.st=='equip'?' o':'');const n=document.createElement('div');n.className='n';n.textContent=it.n;const s=document.createElement('div');s.className='s';s.textContent=it.sub||'';const b=document.createElement('button');
   if(it.st=='buy'){b.textContent='BUY  🦴 '+it.p;b.disabled=SV.bones<it.p;b.onclick=it.act}else if(it.st=='own'){b.textContent=it.own||'OWNED';b.disabled=true}else if(it.st=='equip'){b.textContent='WEAR / EQUIP';b.onclick=it.act}else if(it.st=='eqd'){b.textContent='EQUIPPED';b.disabled=true}else{b.textContent=it.lk;b.disabled=true}
-  c.append(n,s,b);gr.append(c)});el.append(gr)});el.style.display='block';el.scrollTop=sy;CAMP.si=Math.min(CAMP.si||0,99)}
+  if(it.chips){const ch=document.createElement('div');ch.style.cssText='display:flex;gap:4px;margin:2px 0';it.chips.forEach(x=>{const d=document.createElement('span');d.style.cssText='width:28px;height:14px;border:1px solid #0008;background:#'+x.toString(16).padStart(6,'0');ch.append(d)});c.append(n,s,ch,b)}else c.append(n,s,b);gr.append(c)});el.append(gr)});el.style.display='block';el.scrollTop=sy;CAMP.si=Math.min(CAMP.si||0,99)}
 function campShop(w){CAMP.ui=1;CAMP.who=w;CAMP.si=0;try{document.exitPointerLock()}catch(e){}$('cprompt').style.display='none';shopRender()}
 function shopClose(){CAMP.ui=0;$('cshop').style.display='none';if(!padOn)lockPtr()}
 function shopPad(){const e=gp.e,bs=[...$('cshop').querySelectorAll('button:not(:disabled)')];if(!bs.length)return;CAMP.si=Math.max(0,Math.min(bs.length-1,CAMP.si));if(e[12])CAMP.si=snav(bs,CAMP.si,0,-1);if(e[13])CAMP.si=snav(bs,CAMP.si,0,1);if(e[14])CAMP.si=snav(bs,CAMP.si,-1,0);if(e[15])CAMP.si=snav(bs,CAMP.si,1,0);bs.forEach((b,i)=>b.style.outline=i==CAMP.si?'3px solid #f2a900':'');bs[CAMP.si].scrollIntoView({block:'nearest'});if(e[0])bs[CAMP.si].click();if(e[1]||e[9])shopClose()}
@@ -1646,11 +1646,45 @@ function buildDecor(){const wd=WOOD(),st=MT(0xffffff,{map:TXG('stone'),bumpMap:T
  // hanging drying rack with pelts + scarecrow-ish training dummy is omitted (no weapons in camp)
 }
 
+// ---------- v12e: outfits (whole-character looks), dev-menu pad fix, heal hint ----------
+const OUT=[{n:'GRUG DEFAULT',d:'The classic.',skin:0xdba57c,cloth:0x6b4a2a},
+{n:'BONE WARRIOR',d:'Skull helm, bone-grey wraps',skin:0xd8c9a8,cloth:0x6a5a40,hat:'skull',acc:0xe8dfc8,p:800},
+{n:'TRIBAL CHIEF',d:'Feather headdress, war paint red',skin:0xb07a50,cloth:0x8a2a1a,hat:'feather',acc:0xc83a2a,p:1200},
+{n:'SNOW HUNTER',d:'White fur hood',skin:0xe0b898,cloth:0xe8eef2,hat:'hood',acc:0xe8eef2,p:1000},
+{n:'JUNGLE SCOUT',d:'Green wraps and bandana',skin:0x8a5a38,cloth:0x3a6a3a,hat:'band',acc:0x2f8a3a,p:900},
+{n:'LAVA GUARD',d:'Molten helm and ember vest',skin:0x7a4a30,cloth:0x3a1a14,hat:'helm',acc:0xaa3a10,vest:0xaa3a10,p:1600},
+{n:'SHADOW STALKER',d:'Black hood, silent',skin:0x6a4a3a,cloth:0x1a1a22,hat:'hood',acc:0x15151c,p:1500},
+{n:'STONE KNIGHT',d:'Grey plate helm and vest',skin:0xc89878,cloth:0x6a6e74,hat:'helm',acc:0x8a8e94,vest:0x7a7e84,p:2000},
+{n:'SAND NOMAD',d:'Desert robes',skin:0xc89a70,cloth:0xb89a62,hat:'hood',acc:0xc8aa72,p:900},
+{n:'MOON SHAMAN',d:'Horned mask, night robes',skin:0xd8c0a0,cloth:0x4a4a8a,hat:'horns',acc:0xeeeeff,p:1800},
+{n:'GOLD EMPEROR',d:'Crown and golden vest',skin:0xc89a70,cloth:0xc89a20,hat:'crown',acc:0xf0c850,vest:0xd4a017,p:3500},
+{n:'ZOMBIE SURVIVOR',d:'Torn green rags',skin:0x8aa070,cloth:0x4a5a3a,p:700},
+{n:'NEON RAIDER',d:'Cyan visor band, glow vest',skin:0xb88a68,cloth:0x1a2a4a,hat:'band',acc:0x00d8e8,vest:0x00a8c0,p:2400}];
+function applyOutfitFP(){try{if(SV.ot){const o=OUT[SV.ot];SKN.color.setHex(o.skin);FUR.color.setHex(o.cloth)}else{const A=AR[SV.as]||AR[0];SKN.color.setHex(A.c);FUR.color.setHex(A.f)}}catch(e){}}
+const _skinGun13=skinGun;skinGun=function(a,b,c,d,g){_skinGun13(a,b,c,d,g);applyOutfitFP()};
+function dressRP(r,id){const u=r.m.userData;if(!u.bd||!u.mats||u.otf===id)return;if(u.sk0==null){u.sk0=u.mats[0].color.getHex();u.cl0=u.mats[1].color.getHex()}u.otf=id;(u.otG||[]).forEach(m=>u.bd.remove(m));u.otG=[];const o=OUT[id]||OUT[0];
+ if(!id){u.mats[0].color.setHex(u.sk0);if(!u.team)u.mats[1].color.setHex(u.cl0);return}
+ u.mats[0].color.setHex(o.skin);if(!NET.ctf&&!NET.dm)u.mats[1].color.setHex(o.cloth);
+ const M=(c,m)=>new THREE.MeshStandardMaterial({color:c,roughness:.6,metalness:m||0}),add=(g,m,x,y,z,sx,sy,sz)=>{const q=new THREE.Mesh(g,m);q.position.set(x,y,z);if(sx)q.scale.set(sx,sy,sz);u.bd.add(q);u.otG.push(q);return q},SP=new THREE.SphereGeometry(1,12,9),CN=new THREE.ConeGeometry(.07,.4,6),CY=new THREE.CylinderGeometry(1,1,1,12);
+ if(o.vest)add(new THREE.BoxGeometry(.84,.72,.52),M(o.vest,.3),0,1.3,0);
+ const h=o.hat;if(h=='helm')add(SP,M(o.acc,.7),0,2.16,0,.34,.26,.34);
+ if(h=='skull'){add(SP,M(o.acc),0,2.16,0,.34,.27,.34);[-1,1].forEach(s=>add(new THREE.BoxGeometry(.08,.09,.05),M(0x111111),s*.1,2.05,.3))}
+ if(h=='hood'){add(SP,M(o.acc),0,2.0,-.02,.36,.36,.37)}
+ if(h=='band')add(CY,M(o.acc),0,2.1,0,.31,.05,.31);
+ if(h=='feather')[-.2,-.1,0,.1,.2].forEach((x,i)=>{const f=add(CN,M([0xc83a2a,0xf0c850,0x2f8a3a,0x2a5ac8,0xc83a2a][i]),x,2.4,-.18,1.2,1.6,1.2);f.rotation.set(-.35,0,-x*2.2)});
+ if(h=='horns')[-1,1].forEach(s=>{const f=add(CN,M(o.acc),s*.27,2.32,0,1.4,1.6,1.4);f.rotation.z=-s*.55});
+ if(h=='crown'){add(CY,M(o.acc,.8),0,2.28,0,.28,.1,.28);[0,1,2,3,4].forEach(i=>{const a=i/5*6.283;add(CN,M(o.acc,.8),Math.cos(a)*.27,2.42,Math.sin(a)*.27,.9,.7,.9)})}}
+const _nd13=netData;netData=function(f,d){_nd13(f,d);if(d&&d.t=='p'){const r=RP[f];if(r&&r.m&&d.o!=null){const id=d.o|0;dressRP(r,id>=0&&id<OUT.length?id:0)}}};
+const _shopItems13=shopItems;shopItems=function(w){const L=_shopItems13(w);if(w!='tailor')return L;const lst=OUT.map((a,i)=>{const o=SV.oo.includes(i)||!i||OWNER;return{n:a.n,sub:a.d,chips:[a.skin,a.cloth,a.acc||a.cloth],st:o?(SV.ot==i?'eqd':'equip'):'buy',p:a.p||0,act:()=>{if(o){SV.ot=i;save();applyOutfitFP();shopRender()}else buyIt(a.p,()=>{SV.oo.push(i);SV.ot=i;applyOutfitFP()})}}});return[{h:'OUTFITS - CHANGES YOUR WHOLE CHARACTER',list:lst},{h:'ARMS ONLY',list:L[0].list}]};
+// dev menu: handled from the main loop so it works while the game is paused
+function dbgTick(){if(!OWNER||!gp.e)return 0;const open=dbgEl&&dbgEl.style.display=='block';if(gp.e[8]){open?dbgClose():dbgOpen();return 1}if(open){if(gp.e[9]){dbgClose();return 1}dbgPad();return 1}return 0}
+setInterval(()=>{if(state=='play'&&!paused&&SV.hi){HI.textContent=(padOn?'[D-PAD ▼] ':'[H] ')+'BANDAGE '+SV.hi[0]+' · MEDKIT '+SV.hi[1]+' · STIM '+SV.hi[2]}},500);
+
 applyCX();if(location.protocol.startsWith('http'))setTimeout(netConnect,300);
 build(0);ov('UGH-STRIKE','Cave-bros vs BOOM-STICKS! Pick a mode and a rock-place:',1);
 const clk=new THREE.Clock();
 (function tick(){requestAnimationFrame(tick);const dt=Math.max(.001,Math.min(clk.getDelta(),.05));poll();
-if(state=='play'){if(gp.e[9]){paused?resume():pause()}else if(paused&&gp.e[1])resume();if(paused){menuPad();if(NET.on)upd(dt)}else upd(dt)}
+if(state=='play'){if(dbgTick())gp.e[9]=0;if(gp.e[9]){paused?resume():pause()}else if(paused&&gp.e[1])resume();if(paused){menuPad();if(NET.on)upd(dt)}else upd(dt)}
 else if(state=='camp'){campStep(dt)}else{menuPad();
 cam.position.set(Math.sin(clk.elapsedTime*.1)*20,12,Math.cos(clk.elapsedTime*.1)*20);cam.lookAt(0,3,0)}
 gm.visible=state=='play'&&!NET.dead&&!scopeOn;if(state=='camp')campDraw();else draw()})();
