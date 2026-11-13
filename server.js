@@ -83,7 +83,7 @@ function cleanSV(o) {
   const arr = (a, max) => Array.isArray(a) ? a.slice(0, 200).map(v => n(v, 0, max, 0)) : [];
   const out = { xp: n(o.xp, 0, 1e7, 0), bones: n(o.bones, 0, 1e8, 0), prem: n(o.prem, 0, 1, 0), gs: n(o.gs, 0, 100, 0), as: n(o.as, 0, 100, 0),
     cx: n(o.cx, 0, 100, 0), fx: n(o.fx, 0, 100, 0), vib: n(o.vib, 0, 1, 1), gfx: n(o.gfx, 0, 1, 1), mute: n(o.mute, 0, 1, 0), sens: n(o.sens, 1, 10, 5),
-    og: arr(o.og, 100), oa: arr(o.oa, 100), oc: arr(o.oc, 100), of: arr(o.of, 100), cf: arr(o.cf, 200), cp: arr(o.cp, 200), ogn: arr(o.ogn, 100), omd: arr(o.omd, 100), hi: arr(o.hi, 9).slice(0, 3), lo: arr(o.lo, 60).slice(0, 3) };
+    og: arr(o.og, 100), oa: arr(o.oa, 100), oc: arr(o.oc, 100), of: arr(o.of, 100), cf: arr(o.cf, 200), cp: arr(o.cp, 200), ogn: arr(o.ogn, 100), oo: arr(o.oo, 100), ot: n(o.ot, 0, 100, 0), omd: arr(o.omd, 100), hi: arr(o.hi, 9).slice(0, 3), lo: arr(o.lo, 60).slice(0, 3) };
   out.L = (Array.isArray(o.L) ? o.L : []).slice(0, 40).map(l => ({ o: n(l && l.o, 0, 20, 0), b: n(l && l.b, 0, 20, 0), m: n(l && l.m, 0, 20, 0), g: n(l && l.g, 0, 20, 0), a: n(l && l.a, 0, 20, 0) }));
   if (out.lo.length !== 3) out.lo = [2, 1, 0];
   return out;
