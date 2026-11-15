@@ -86,7 +86,8 @@ function cleanSV(o) {
     og: arr(o.og, 100), oa: arr(o.oa, 100), oc: arr(o.oc, 100), of: arr(o.of, 100), cf: arr(o.cf, 200), cp: arr(o.cp, 200), ogn: arr(o.ogn, 100), oo: arr(o.oo, 100), ot: n(o.ot, 0, 100, 0), omd: arr(o.omd, 100), hi: arr(o.hi, 9).slice(0, 3), lo: arr(o.lo, 60).slice(0, 3),
     tk: n(o.tk, 0, 1e6, 0), wl: n(o.wl, 0, 1e6, 0), qp: arr(o.qp, 1e6).slice(0, 10), qb: arr(o.qb, 1e6).slice(0, 24), qd: arr(o.qd, 1).slice(0, 24),
     kg: arr(o.kg, 100).slice(0, 12), ka: n(o.ka, 0, 200, 0), kd: n(o.kd, 0, 40, 0), kf: n(o.kf, 0, 50, 0), kw: n(o.kw, 0, 50, 0), kh: arr(o.kh, 50).slice(0, 3),
-    sa: arr(o.sa, 300).slice(0, 12), sr: arr(o.sr, 99999).slice(0, 40), bg: arr(o.bg, 100).slice(0, 12), ba: n(o.ba, 0, 12, 0), sk: n(o.sk, 0, 20, 0) };
+    sa: arr(o.sa, 300).slice(0, 12), sr: arr(o.sr, 99999).slice(0, 40), bg: arr(o.bg, 100).slice(0, 12), ba: n(o.ba, 0, 12, 0), sk: n(o.sk, 0, 20, 0),
+    xm: arr(o.xm, 10).slice(0, 200), mi: arr(o.mi, 60).slice(0, 60), bt: n(o.bt, 0, 3, 0) };
   out.L = (Array.isArray(o.L) ? o.L : []).slice(0, 40).map(l => ({ o: n(l && l.o, 0, 20, 0), b: n(l && l.b, 0, 20, 0), m: n(l && l.m, 0, 20, 0), g: n(l && l.g, 0, 20, 0), a: n(l && l.a, 0, 20, 0) }));
   if (out.lo.length !== 3) out.lo = [2, 1, 0];
   return out;
