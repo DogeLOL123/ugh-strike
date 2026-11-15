@@ -1714,6 +1714,212 @@ function guestReset(){OWNER=false;let st={};try{st=JSON.parse(localStorage.getIt
 const _pAcc13=pAccount;pAccount=function(mp){_pAcc13(mp);if(!ACC.user)mp.append(dv('hint','<b>GUEST PROFILE</b> - bones, unlocks and levels are not saved. Sign in to get your account back.'))};
 const _aSV13=applySV;applySV=function(sv){_aSV13(sv);try{applyOutfitFP()}catch(e){}};
 
+// ---------- v13: EXTRACTION RAID (PvPvE) ----------
+const EXT={on:0,go:0},XL={open:0,cd:0},XH=420,XN=['GRUK','MOGA','BONZ','TARG','ULMA','DRAK','KOTH','ZUG','NAKA','BROG','VEKA','TORR'];
+let RAID=null,XM=null,XMC={},XTR=null;
+const xmat=(c,r,m,e)=>new THREE.MeshStandardMaterial({color:c,roughness:r==null?.8:r,metalness:m||0,emissive:e||0});
+const xcol=c=>XMC[c]||(XMC[c]=xmat(c,.92));
+{const s=document.createElement('style');s.textContent=`#xl,#xe{position:fixed;inset:0;z-index:95;display:none;background:radial-gradient(#142016ee,#050705f7);color:#f1f1ee;font-family:Teko,sans-serif;align-items:center;justify-content:center}#xl.on,#xe.on{display:flex}
+.xp{width:min(780px,94vw);max-height:92vh;overflow:auto;border:1px solid #ffffff26;border-top:3px solid #f2a900;background:#0b0e0cf2;padding:16px 22px}.xp h1{margin:0;font-family:'Black Ops One',Teko,sans-serif;font-size:40px;letter-spacing:3px;font-weight:400}.xp .sb{color:#f2a900;font-size:22px;letter-spacing:2px;margin-bottom:8px}.xp li{font-size:20px;color:#cfd5cf;margin:2px 0}
+.xr{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin:10px 0}.xr div{border:1px solid #ffffff22;background:#ffffff0a;padding:4px 8px;font-size:19px;letter-spacing:1px}.xr div.rd{border-color:#6ad06a;color:#9be89b}.xr div.me{border-color:#f2a900;color:#f2a900}
+.xb{display:flex;gap:10px;margin-top:10px}.xb button{flex:1;font-family:Teko,sans-serif;font-size:28px;letter-spacing:3px;padding:8px;background:#1b221c;color:#f1f1ee;border:1px solid #ffffff30;cursor:pointer}.xb button:hover,.xb button.pd{background:#f2a900;color:#111}
+#xhud{position:fixed;right:14px;top:92px;z-index:50;display:none;color:#f1f1ee;font-family:Teko,sans-serif;text-align:right;font-size:22px;letter-spacing:1px;text-shadow:1px 1px 0 #000;line-height:1.05}#xhud b{color:#f2a900}#xhud .t{font-size:40px}#xhud .lo{color:#ff6a50}
+#xlog{position:fixed;left:14px;bottom:130px;z-index:50;display:none;font-family:Teko,sans-serif;font-size:21px;color:#f1f1ee;text-shadow:1px 1px 0 #000}#xlog div{background:#0b0e0ccc;border-left:4px solid #9aa;padding:1px 8px;margin-top:2px;animation:xin .3s}#xlog .rare{border-color:#4aa8ff}#xlog .epic{border-color:#f2a900}@keyframes xin{from{transform:translateX(-30px);opacity:0}}
+#xpr{position:fixed;left:50%;bottom:20%;transform:translateX(-50%);z-index:60;display:none;background:#0b0e0cd0;border-left:4px solid #f2a900;color:#f1f1ee;font-family:Teko,sans-serif;font-size:26px;letter-spacing:2px;padding:4px 16px}
+#xal{position:fixed;left:50%;top:70px;transform:translateX(-50%);z-index:60;display:none;color:#ff3b2a;font-family:'Black Ops One',Teko,sans-serif;font-size:34px;letter-spacing:4px;animation:xbl .5s infinite alternate}@keyframes xbl{to{opacity:.3}}
+#xmap{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);z-index:70;display:none;border:2px solid #f2a900;background:#0b100c}`;document.head.append(s);
+document.body.insertAdjacentHTML('beforeend','<div id="xl"></div><div id="xe"></div><div id="xhud"></div><div id="xlog"></div><div id="xpr"></div><div id="xal">VAULT ALARM</div><canvas id="xmap" width="640" height="640"></canvas>')}
+// ---- warden npc at camp ----
+function addWarden(){try{const wx=8.6,wz=-10.6,g=new THREE.Group();g.position.set(wx,hgt(wx,wz),wz);g.rotation.y=Math.atan2(-wx,-wz);scene.add(g);
+ const n=mkNPC({skin:0xb88868,shirt:0x2d3330,pants:0x2a2d2a,hair:0x151210,beard:1});n.userData.live=1;g.add(n);const u=n.userData,sg=MT(0x3b4048,{roughness:.45,metalness:.7}),dk=MT(0x1d2024,{roughness:.5,metalness:.6}),ac=MT(0x8a2a1c,{roughness:.6,metalness:.3});
+ const pt=(geo,m,x,y,z,p,sx,sy,sz)=>{const o=new THREE.Mesh(geo,m);o.castShadow=true;o.position.set(x,y,z);if(sx)o.scale.set(sx,sy,sz);(p||n).add(o);return o},B=(w,h,d)=>new THREE.BoxGeometry(w,h,d),S=new THREE.SphereGeometry(1,12,10),C=(a,b,h)=>new THREE.CylinderGeometry(a,b,h,10);
+ pt(B(.5,.5,.28),sg,0,.3,.04,u.tor);pt(B(.42,.18,.26),dk,0,.02,.03,u.tor);pt(B(.14,.3,.04),ac,0,.32,.19,u.tor);
+ [-1,1].forEach(s=>{pt(S,sg,s*.29,.58,0,u.tor,.13,.09,.13);pt(S,dk,s*.3,.5,0,u.tor,.1,.08,.1);pt(B(.13,.34,.15),sg,s*.1,.6,.01,n);pt(B(.12,.3,.14),sg,s*.1,.22,.02,n);pt(C(.06,.055,.26),dk,0,-.14,0,s<0?u.L.f:u.R.f)});
+ pt(S,sg,0,.1,0,u.head,.14,.14,.15);pt(B(.2,.045,.03),MT(0x0a0a0a,{roughness:.2,metalness:.5,emissive:0x331100}),0,.11,.13,u.head);pt(B(.03,.05,.2),ac,0,.24,0,u.head);pt(B(.22,.1,.12),dk,0,-.02,.07,u.head);
+ pt(B(.2,.3,.1),dk,0,.4,-.16,u.tor);pt(C(.01,.01,.5),dk,.1,.7,-.18,u.tor);
+ CAMP.npc.push({n,g,rot:g.rotation.y,x:wx,z:wz});CAMP.st.push({id:'warden',p:[wx+Math.sin(g.rotation.y)*2.2,wz+Math.cos(g.rotation.y)*2.2],r:3.4,t:'TALK TO THE WARDEN - EXTRACTION',a:openRaid});solids.push({x0:wx-.5,x1:wx+.5,z0:wz-.5,z1:wz+.5});
+ const wd=WOOD(),tx=wx-2.6,tz=wz+.6,tb=new THREE.Mesh(B(1.7,.12,1.0),wd);tb.position.set(tx,hgt(tx,tz)+.9,tz);tb.rotation.y=g.rotation.y;tb.castShadow=true;scene.add(tb);
+ [[-.75,-.4],[.75,-.4],[-.75,.4],[.75,.4]].forEach(q=>{const l=new THREE.Mesh(B(.1,.9,.1),wd);l.position.set(tx+q[0]*Math.cos(g.rotation.y),hgt(tx,tz)+.45,tz-q[0]*Math.sin(g.rotation.y)+q[1]);scene.add(l)});
+ const mp=new THREE.Mesh(new THREE.PlaneGeometry(1.4,.8),MT(0xffffff,{map:TXG('parch'),roughness:.9}));mp.rotation.x=-Math.PI/2;mp.rotation.z=-g.rotation.y;mp.position.set(tx,hgt(tx,tz)+.965,tz);scene.add(mp);solids.push({x0:tx-.9,x1:tx+.9,z0:tz-.7,z1:tz+.7});
+ const cv=document.createElement('canvas');cv.width=256;cv.height=96;const c=cv.getContext('2d');c.fillStyle='#2a2d2a';c.fillRect(0,0,256,96);c.strokeStyle='#f2a900';c.lineWidth=5;c.strokeRect(4,4,248,88);c.fillStyle='#f2a900';c.font='bold 40px Impact,sans-serif';c.textAlign='center';c.fillText('EXTRACTION',128,50);c.fillStyle='#d8d8d0';c.font='22px Impact,sans-serif';c.fillText('45 MIN RAID - GET OUT ALIVE',128,80);
+ const sp=new THREE.Mesh(B(2.2,.8,.06),new THREE.MeshStandardMaterial({map:new THREE.CanvasTexture(cv),roughness:.8}));sp.position.set(wx+1.4,hgt(wx,wz)+2.9,wz-.2);sp.rotation.y=g.rotation.y;scene.add(sp);[-1,1].forEach(s=>{const p=new THREE.Mesh(B(.1,2.8,.1),wd);p.position.set(wx+1.4+s*1.05*Math.cos(g.rotation.y),hgt(wx,wz)+1.4,wz-.2-s*1.05*Math.sin(g.rotation.y));scene.add(p)})
+ }catch(e){console.error(e)}}
+const _bc13=buildCamp;buildCamp=function(){_bc13();addWarden()};
+// ---- lobby ----
+function openRaid(){state='menu';try{document.exitPointerLock()}catch(e){}campUI(0);CAMP.ui=1;XL.open=1;XL.cd=0;const nm=XN.slice().sort(()=>Math.random()-.5).slice(0,7);
+ $('xl').innerHTML='<div class="xp"><h1>EXTRACTION RAID</h1><div class="sb">PvPvE &middot; 45:00 ON THE CLOCK &middot; HUGE WASTELAND</div><ul><li>Loot POIs for ammo, guns, armor and food. Hunger and thirst are real.</li><li>Vault keys are rare (1 in 200 chests). Vaults hold the best loot, but guards defend them and opening one sets off a loud ALARM.</li><li>Reach a green extraction beacon and hold for 8 seconds to bring loot home.</li><li><b style="color:#ff6a50">Die or run out the clock and you lose everything you carried.</b></li></ul><div class="xr" id="xro"></div><div class="xb"><button id="xgo" class="pd">DEPLOY (A)</button><button id="xbk">BACK (B)</button></div></div>';
+ $('xro').innerHTML='<div class="me">YOU</div>'+nm.map(n=>'<div>'+n+'</div>').join('');$('xl').classList.add('on');$('xgo').onclick=xDeploy;$('xbk').onclick=xBack}
+function xBack(){if(XL.cd)return;XL.open=0;$('xl').classList.remove('on');state='camp';CAMP.ui=0;campUI(1);try{lockPtr()}catch(e){}}
+function xDeploy(){if(XL.cd)return;XL.cd=1;const r=[...$('xro').children].slice(1);let i=0;const t=setInterval(()=>{if(r[i])r[i].classList.add('rd');i++;if(i>=r.length){clearInterval(t);$('xgo').textContent='DEPLOYING...';setTimeout(()=>{XL.open=0;XL.cd=0;$('xl').classList.remove('on');xStart()},900)}},260)}
+const _mp13=menuPad;menuPad=function(){if(XL.open){if(gp.e[0])xDeploy();if(gp.e[1])xBack();return}if(XE.open){if(gp.e[0])xHome();return}_mp13()};
+const XE={open:0};
+// ---- generation ----
+const XT=[{n:'RUINED CAMP',c:0x6b5a45,z:5,a:0,tw:0},{n:'OUTPOST',c:0x59605a,z:0,a:5,tw:1},{n:'FARMSTEAD',c:0x7a4e35,z:6,a:0,tw:0},{n:'QUARRY',c:0x7a766c,z:3,a:2,tw:0},{n:'WAYSTATION',c:0x4e5a68,z:2,a:3,tw:1}];
+function genRaid(){const r=mulb((Math.random()*4e9)|0),A=(a,b)=>a+(b-a)*r(),pk=a=>a[Math.floor(r()*a.length)];
+ const X={t:2700,ap:0,apmax:0,dr:0,food:100,water:100,fd:0,wt:0,keys:0,loot:[],val:0,ex:0,al:0,sq:0,rt:150,hs:0,ch:[],poi:[],vt:[],xp:[],tr:[],un:0,kills:0,sr:0,pt:0};
+ const ea=A(0,6.28);for(let i=0;i<6;i++){const a=ea+i*1.047+A(-.25,.25);X.xp.push({x:Math.cos(a)*(XH-28),z:Math.sin(a)*(XH-28)})}
+ const sa=ea+.52+pk([0,1,2,3,4,5])*1.047;X.sp={x:Math.cos(sa)*(XH-45),z:Math.sin(sa)*(XH-45)};
+ const all=[X.sp],far=(x,z,m)=>all.every(q=>Math.hypot(q.x-x,q.z-z)>m),lim=XH-75;
+ for(let k=0,t=0;k<6&&t<900;t++){const x=A(-lim,lim),z=A(-lim,lim);if(far(x,z,150)&&Math.hypot(x-X.sp.x,z-X.sp.z)>230){const v={x,z,def:[],ch:[],sl:[],dead:[],vault:1,n:'VAULT'};all.push(v);X.vt.push(v);k++}}
+ for(let k=0,t=0;k<22&&t<1500;t++){const x=A(-lim,lim),z=A(-lim,lim);if(far(x,z,92)){const th=XT[k%5],p={x,z,def:[],ch:[],sl:[],dead:[],n:th.n,th};all.push(p);X.poi.push(p);k++}}
+ const wall=(p,x,z,w,d,h,c,s)=>{p.def.push({x:p.x+x,y:h/2,z:p.z+z,w,h,d,c,s:s==null?1:s});if(s!==0)solids.push({x0:p.x+x-w/2,x1:p.x+x+w/2,z0:p.z+z-d/2,z1:p.z+z+d/2})};
+ const chest=(p,x,z,t,v)=>{const c={x:p.x+x,z:p.z+z,t,v:v||0,open:0,g:null,ry:A(0,6.28)};p.ch.push(c);X.ch.push(c)};
+ const side=(p,hz,pos,len,gap,c,th)=>{const a=-len/2,b=-len/2+(len/2+gap.c-gap.w/2+len/2-len/2);const s1=[a,gap.c-gap.w/2],s2=[gap.c+gap.w/2,len/2];[s1,s2].forEach(s=>{const l=s[1]-s[0];if(l<=.2)return;const m=(s[0]+s[1])/2;hz?wall(p,m,pos,l,1,2.6,c):wall(p,pos,m,1,l,2.6,c)})};
+ X.poi.forEach(p=>{const th=p.th,S=16,gt=Math.floor(r()*4);for(let s=0;s<4;s++){const g=s==gt||s==(gt+2)%4,gp=g?{c:0,w:8}:{c:A(-8,8),w:3};side(p,s<2,s%2?S:-S,S*2,gp,th.c)}
+  const bw=10,bd=8,ox=A(-4,4),oz=A(-3,3);wall(p,ox,oz-bd/2,bw,.6,3.4,th.c);wall(p,ox-bw/2,oz,.6,bd,3.4,th.c);wall(p,ox+bw/2,oz,.6,bd,3.4,th.c);wall(p,ox-bw/2+1.75,oz+bd/2,3.5,.6,3.4,th.c);wall(p,ox+bw/2-1.75,oz+bd/2,3.5,.6,3.4,th.c);wall(p,ox,oz+bd/2,3,.6,.9,th.c);wall(p,ox,oz,bw+.8,bd+.8,.4,0x3a352d,0);p.def[p.def.length-1].y=3.6;
+  if(th.tw){wall(p,-S+1.5,-S+1.5,3,3,11,0x4a4d50);p.def.push({x:p.x-S+1.5,y:11.3,z:p.z-S+1.5,w:4,h:.5,d:4,c:0x2f3235,s:0})}
+  const free=(x,z)=>!(Math.abs(x-ox)<bw/2+2&&Math.abs(z-oz)<bd/2+2)&&Math.abs(x)<S-2&&Math.abs(z)<S-2;
+  for(let i=0;i<8;i++){const x=A(-S+2,S-2),z=A(-S+2,S-2);if(free(x,z))wall(p,x,z,i<5?1.3:.8,i<5?1.3:.8,i<5?1.3:1.0,i<5?0x7a5a36:0x3a4a3a)}
+  const ty=pk(['ammo','gun','armor','lunch']);for(let i=0;i<9;i++){const ins=i<5;let x,z,a=0;do{x=ins?ox+A(-bw/2+1,bw/2-1):A(-S+2,S-2);z=ins?oz+A(-bd/2+1,bd/2-1.5):A(-S+2,S-2);a++}while(!ins&&!free(x,z)&&a<20);chest(p,x,z,i==0?ty:pk(['ammo','ammo','gun','armor','lunch','lunch']))}
+  const n=th.z+th.a;for(let i=0;i<n;i++){const an=A(0,6.28),rr=A(4,S-3);p.sl.push({k:i<th.a?'a':(r()<.15?'b':'z'),x:p.x+Math.cos(an)*rr,z:p.z+Math.sin(an)*rr})}});
+ X.vt.forEach(v=>{const W=7,D=6,c=0x6c6e70;wall(v,0,-D,W*2,1.2,4.6,c);wall(v,-W,0,1.2,D*2,4.6,c);wall(v,W,0,1.2,D*2,4.6,c);wall(v,-W+2.8,D,W-2.8+0.01,1.2,4.6,c);wall(v,W-2.8,D,W-2.8+0.01,1.2,4.6,c);wall(v,0,0,W*2+1,D*2+1,.5,0x3a3c3e,0);v.def[v.def.length-1].y=4.9;
+  v.def.push({x:v.x,y:2,z:v.z+D,w:4,h:4,d:.9,c:0x9a8a32,s:1,door:1});v.ds={x0:v.x-2,x1:v.x+2,z0:v.z+D-.45,z1:v.z+D+.45};solids.push(v.ds);v.dc=v.def.length-1;
+  for(let i=0;i<8;i++){const a=-W+1+i*(W*2-2)/7;wall(v,a,D+4+(i%2)*1.5,1.4,1.4,1.4,0x5a5a4a)}
+  for(let i=0;i<3;i++)chest(v,-4+i*4,-3.2,'vault',1);
+  for(let i=0;i<5;i++){const an=A(.3,2.8),rr=A(9,16);v.sl.push({k:i<3?'a':'h',x:v.x+Math.cos(an)*rr,z:v.z+D+Math.sin(an)*rr})}});
+ for(let i=0;i<150;i++){let x,z,a=0;do{x=A(-lim-20,lim+20);z=A(-lim-20,lim+20);a++}while(!(far(x,z,26)||a>20));const c={x,z,t:pk(['ammo','gun','armor','lunch','lunch','ammo']),v:0,open:0,g:null,ry:A(0,6.28)};X.ch.push(c)}
+ for(let i=0;i<900;i++){const x=A(-XH,XH),z=A(-XH,XH);if(all.every(q=>Math.hypot(q.x-x,q.z-z)>(q.vault?22:26))&&Math.hypot(x-X.sp.x,z-X.sp.z)>10){X.tr.push({x,z,s:A(.8,1.5),ry:A(0,6.28),k:r()<.2?1:0});solids.push({x0:x-.45,x1:x+.45,z0:z-.45,z1:z+.45})}}
+ return X}
+// ---- visuals ----
+function mkChest(c){const t=c.t,g=new THREE.Group(),lid=new THREE.Group();g.add(lid);const B=(w,h,d,x,y,z,m,p)=>{const o=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),m);o.position.set(x,y,z);o.castShadow=false;(p||g).add(o);return o};
+ XM=XM||{ol:xmat(0x46552a,.85,.1),ol2:xmat(0x384421,.85,.1),st:xmat(0x9aa0a8,.35,.85),bk:xmat(0x131316,.5,.4),yl:xmat(0xe0b020,.6),bl:xmat(0x4a5a6e,.55,.55),rd:xmat(0xb32020,.45,.5),wh:xmat(0xeeeeea,.6),go:xmat(0xd4a928,.3,.9,0x2a2008),br:xmat(0xc89a3a,.3,.9),dk:xmat(0x2a2d32,.6,.5)};const M=XM;
+ if(t=='ammo'){B(.9,.4,.5,0,.2,0,M.ol);lid.position.set(0,.4,-.25);B(.92,.1,.52,0,.05,.25,M.ol2,lid);B(.5,.012,.14,0,.106,.25,M.yl,lid);[-.3,.3].forEach(x=>B(.05,.42,.54,x,.21,0,M.st));for(let i=0;i<3;i++){const b=new THREE.Mesh(new THREE.CylinderGeometry(.03,.03,.16,8),M.br);b.rotation.z=Math.PI/2;b.position.set(-.15+i*.15,.14,.25);lid.add(b)}}
+ else if(t=='gun'){B(1.3,.2,.5,0,.1,0,M.bk);lid.position.set(0,.2,-.25);B(1.32,.08,.52,0,.04,.25,M.bk,lid);[-.45,0,.45].forEach(x=>B(.08,.08,.04,x,.18,.27,M.st));B(.34,.05,.06,0,.095,.25,M.wh,lid);B(.06,.05,.2,-.1,.095,.25,M.wh,lid);[-.62,.62].forEach(x=>B(.08,.22,.52,x,.1,0,M.st))}
+ else if(t=='armor'){B(1,.6,.7,0,.3,0,M.bl);lid.position.set(0,.6,-.35);B(1.02,.1,.72,0,.05,.35,M.bl,lid);for(let i=0;i<3;i++){const s=B(.14,.62,.02,-.3+i*.3,.3,.36,M.yl);s.rotation.z=.6}const pl=B(.34,.38,.02,0,.34,-.36,M.dk);[-.46,.46].forEach(x=>B(.08,.62,.72,x,.31,0,M.st))}
+ else if(t=='lunch'){B(.56,.3,.3,0,.15,0,M.rd);lid.position.set(0,.3,-.15);B(.58,.06,.32,0,.03,.15,M.rd,lid);B(.58,.07,.32,0,.2,0,M.wh);const h=new THREE.Mesh(new THREE.TorusGeometry(.12,.016,6,10,Math.PI),M.st);h.position.set(0,.06,.15);lid.add(h);B(.06,.05,.02,0,.28,.16,M.st)}
+ else{B(1.1,.55,.7,0,.275,0,M.bk);lid.position.set(0,.55,-.35);B(1.12,.12,.72,0,.06,.35,M.bk,lid);[-.4,0,.4].forEach(x=>B(.08,.58,.74,x,.29,0,M.go));B(.3,.04,.02,0,.4,.36,M.go);B(1,.04,.6,0,.58,0,M.go)}
+ g.userData.lid=lid;g.position.set(c.x,0,c.z);g.rotation.y=c.ry;if(c.open)lid.rotation.x=-1.35;return g}
+function showObj(o){if(o.g)return;const g=new THREE.Group();o.def.forEach((d,i)=>{const m=new THREE.Mesh(new THREE.BoxGeometry(d.w,d.h,d.d),xcol(d.c));m.position.set(d.x,d.y,d.z);if(d.s!==0)walls.push(m);g.add(m);if(d.door)o.dm=m});scene.add(g);o.g=g;if(o.dm&&o.op)o.dm.position.y=7;
+ if(o.vault){const l=new THREE.Mesh(new THREE.SphereGeometry(.3,8,6),xmat(0xff2010,.4,0,0xff1000));l.position.set(o.x,5.4,o.z+6.8);g.add(l);o.lm=l}}
+function hideObj(o){if(!o.g)return;scene.remove(o.g);o.g.children.forEach(m=>{const i=walls.indexOf(m);if(i>=0)walls.splice(i,1);m.geometry.dispose()});o.g=null}
+function xBuild(){try{if(scene)disposeScene(scene)}catch(e){}scene=new THREE.Scene();scene.background=new THREE.Color(0xaebfc6);scene.fog=new THREE.FogExp2(0xaebfc6,.0062);solids=[];walls=[];es=[];cors=[];rocks=[];try{fxReset()}catch(e){}try{PILES.length=0;TORCH.length=0}catch(e){}SUN=null;drops=[];stn=[];barr=[];
+ RAID=genRaid();const X=RAID;scene.add(new THREE.HemisphereLight(0xdfeaff,0x4a5a3a,.95));const sun=new THREE.DirectionalLight(0xfff0d0,.9);sun.position.set(120,200,60);scene.add(sun);
+ const gt=TXG('grass').clone();gt.wrapS=gt.wrapT=THREE.RepeatWrapping;gt.repeat.set(220,220);gt.needsUpdate=true;const gm2=new THREE.Mesh(new THREE.PlaneGeometry(XH*2+400,XH*2+400),new THREE.MeshStandardMaterial({map:gt,color:0xb8c890,roughness:1}));gm2.rotation.x=-Math.PI/2;scene.add(gm2);
+ const nT=X.tr.length,tk=new THREE.InstancedMesh(new THREE.CylinderGeometry(.18,.28,3,6),xmat(0x4a3322,.95),nT),tc=new THREE.InstancedMesh(new THREE.ConeGeometry(1.7,5.5,7),xmat(0x2f5a2c,.9),nT),d=new THREE.Object3D();
+ X.tr.forEach((t,i)=>{d.position.set(t.x,1.5*t.s,t.z);d.scale.set(t.s,t.s,t.s);d.rotation.y=t.ry;d.updateMatrix();tk.setMatrixAt(i,d.matrix);d.position.y=(3+2.4)*t.s;d.updateMatrix();tc.setMatrixAt(i,d.matrix)});scene.add(tk,tc);
+ const rm=new THREE.InstancedMesh(new THREE.DodecahedronGeometry(1,0),xmat(0x7a766c,.95),140);for(let i=0;i<140;i++){const x=(Math.random()*2-1)*XH,z=(Math.random()*2-1)*XH,s=2+Math.random()*4;if(Math.hypot(x-X.sp.x,z-X.sp.z)<20)continue;d.position.set(x,s*.55,z);d.scale.set(s,s*.7,s*.9);d.rotation.set(Math.random(),Math.random()*6,0);d.updateMatrix();rm.setMatrixAt(i,d.matrix);solids.push({x0:x-s*.75,x1:x+s*.75,z0:z-s*.7,z1:z+s*.7})}scene.add(rm);
+ X.xp.forEach(p=>{const b=new THREE.Mesh(new THREE.CylinderGeometry(5,5,80,16,1,true),new THREE.MeshBasicMaterial({color:0x44ff77,transparent:true,opacity:.22,side:THREE.DoubleSide,fog:false}));b.position.set(p.x,40,p.z);scene.add(b);const rg=new THREE.Mesh(new THREE.RingGeometry(5.5,6.5,32),new THREE.MeshBasicMaterial({color:0x44ff77,side:THREE.DoubleSide}));rg.rotation.x=-Math.PI/2;rg.position.set(p.x,.05,p.z);scene.add(rg)});
+ cam.far=560;cam.updateProjectionMatrix();scene.add(cam);cam.add(gm);gun()}
+const _build13=build;build=function(mi){if(EXT.go){EXT.go=0;ren.outputEncoding=THREE.LinearEncoding;ren.shadowMap.autoUpdate=true;xBuild()}else{if(cam.far>300){cam.far=300;cam.updateProjectionMatrix()}_build13(mi)}};
+// ---- loot ----
+const GP13=i=>{try{return Math.max(70,Math.round(gunPrice(G[i],i)*.3))}catch(e){return 160}};
+function rollLoot(t,vt){const o=[],R_=Math.random,pk=a=>a[Math.floor(R_()*a.length)];
+ const mod=(hi)=>{const k=Math.floor(R_()*5),L_=MODN[k][1].length,i=hi?Math.max(1,L_-1-Math.floor(R_()*2)):1+Math.floor(R_()*(L_-1));return{k:'mod',id:k*10+i,n:MODN[k][0]+': '+MODN[k][1][i].n,v:Math.round(MODP[k]*(hi?.7:.4)),r:hi?'epic':'rare'}};
+ const gunI=hi=>{const s=G.map((g,i)=>i).filter(i=>i>0).sort((a,b)=>(G[a].ul||0)-(G[b].ul||0)),h=Math.floor(s.length*.55);return pk(hi?s.slice(h):s.slice(0,h+2))};
+ const ammo=n=>{for(let k=0;k<n;k++){const i=Math.floor(R_()*G.length),q=Math.max(12,Math.round(G[i].m*(1+R_()*1.6)));o.push({k:'ammo',g:i,q,n:G[i].n.split(' ')[0]+' AMMO x'+q,v:Math.round(q*.7)})}};
+ const armor=hi=>{const w=R_(),ap=hi?140:w<.5?40:w<.85?80:140;o.push({k:'armor',ap,n:(ap>100?'HEAVY':ap>60?'MEDIUM':'LIGHT')+' ARMOR ('+ap+')',v:ap*3,r:ap>100?'epic':'rare'});if(R_()<(hi?1:.35))o.push({k:'amod',n:'CERAMIC INSERT',v:150,r:'rare'});if(R_()<.5)o.push({k:'plate',n:'ARMOR PLATE +30',v:60})};
+ if(vt){const g=gunI(1);o.push({k:'gun',g,n:G[g].n,v:GP13(g)*2,r:'epic'});o.push(mod(1));if(R_()<.7)o.push(mod(1));if(R_()<.6){armor(1)}else ammo(2);o.push({k:'cash',n:'BONE STASH',v:200+Math.floor(R_()*500),r:'epic'})}
+ else if(t=='ammo')ammo(2+Math.floor(R_()*3));
+ else if(t=='gun'){const g=gunI(0);o.push({k:'gun',g,n:G[g].n,v:GP13(g),r:'rare'});const m=Math.floor(R_()*3);for(let i=0;i<m;i++)o.push(mod(0))}
+ else if(t=='armor')armor(0);
+ else{const n=1+Math.floor(R_()*2);for(let i=0;i<n;i++){const f=R_()<.5;o.push(f?{k:'food',n:pk(['ROAST MEAT','DRIED BERRIES','BONE BROTH','MAMMOTH JERKY']),v:25}:{k:'water',n:pk(['CLEAN WATER','GOURD OF WATER','SPRING WATER']),v:20})}}
+ if(!vt&&R_()<1/200)o.push({k:'key',n:'VAULT KEY',v:500,r:'epic'});return o}
+function lootAdd(it){const X=RAID;X.loot.push(it);X.val+=it.v;
+ if(it.k=='ammo')res[it.g]=(res[it.g]||0)+it.q;else if(it.k=='gun'){if(!own[it.g])takeGun(it.g);else res[it.g]=(res[it.g]||0)+G[it.g].m*2}
+ else if(it.k=='armor'){if(it.ap>X.apmax){X.apmax=it.ap;X.ap=it.ap}else X.ap=Math.min(X.apmax,X.ap+it.ap*.5)}else if(it.k=='plate'){if(!X.apmax)X.apmax=30;X.ap=Math.min(X.apmax,X.ap+30)}
+ else if(it.k=='amod')X.dr=Math.min(.4,X.dr+.08);else if(it.k=='food')X.fd++;else if(it.k=='water')X.wt++;else if(it.k=='key')X.keys++;
+ const d=document.createElement('div');d.className=it.r||'';d.innerHTML=it.n+' <b style="color:#f2a900">'+it.v+'</b>';const lg=$('xlog');lg.prepend(d);while(lg.children.length>7)lg.lastChild.remove();setTimeout(()=>d.remove(),7000)}
+function xEat(w){const X=RAID;if(w){if(X.wt<=0||X.water>=100)return;X.wt--;X.water=Math.min(100,X.water+40)}else{if(X.fd<=0||X.food>=100)return;X.fd--;X.food=Math.min(100,X.food+35)}if(AC)note(260,AC.currentTime,.15,'triangle',.15,mg,360)}
+// ---- enemies ----
+function addX(k,x,z,p,sl,al){if(es.length>46)return;const m0=mode;mode=0;ARMF=(k=='a'||k=='h')?1:0;const hp0=k=='b'?520:k=='z'?150:k=='h'?300:210;addE(k=='b'?1:0,(k=='a'||k=='h')?0:1,hp0,k=='z'?2.2:k=='b'?1.9:3.1,[x,z]);ARMF=0;mode=m0;const e=es[es.length-1];if(!e)return;const u=e.userData;u.xe=1;u.rise=0;u.home=[x,z];u.xp=p;u.xs=sl;u.xal=al||0;u.big=k=='b';u.bsp=k=='h'?2.6:u.sp;u.bcd=R(1,3);u.bn=0;u.ph=Math.random()*6;if(k=='h'){e.scale.setScalar(1.12);try{u.mats[0].color.setRGB(.6,.6,.66)}catch(_){}}e.position.y=0;if(p)p.al.push(e);return e}
+function xeAI(e,dt){const u=e.userData,p=e.position;u.rise=0;p.y=0;if(u.dead)return;pickT(e);const dx=TX-p.x,dz=TZ-p.z,d=Math.hypot(dx,dz)||1;u.hit=Math.max(0,(u.hit||0)-dt);u.cd=(u.cd||0)-dt;u.bcd-=dt;u.ph+=dt*6;
+ const aw=u.xal||d<(u.arm?44:28);let vx=0,vz=0,sp=(u.bsp||2.5)*(u.hit>0?.4:1);
+ if(aw){if(u.arm){if(d>20){vx=dx/d;vz=dz/d}else if(d<10){vx=-dx/d;vz=-dz/d}else{const s=Math.sin(u.ph*.07+(u.xs||0))>0?1:-1;vx=-dz/d*s;vz=dx/d*s}sp*=.85;if(u.bcd<=0&&d<46){if(u.bn>0){bossShot(e,d,0);u.bn--;u.bcd=u.bn?.13:R(1.3,2.4)}else{u.bn=3;u.bcd=.4}}}
+  else{vx=dx/d;vz=dz/d;if(d<1.8){vx=vz=0;if(u.cd<=0){u.cd=1.1;hurt(u.big?28:14);if(AC)note(120,AC.currentTime,.1,'square',.2)}}}}
+ else if(u.home){const hx=u.home[0]-p.x,hz=u.home[1]-p.z,hd=Math.hypot(hx,hz);if(hd>2){vx=hx/hd;vz=hz/hd;sp*=.35}}
+ const mvg=vx||vz;if(mvg){const sx=vx*sp*dt,sz=vz*sp*dt;let m=0;if(!blocked(p.x+sx,p.z,.5)){p.x+=sx;m=1}if(!blocked(p.x,p.z+sz,.5)){p.z+=sz;m=1}if(!m){const q=u.xs%2?1:-1;if(!blocked(p.x-vz*sp*dt*q,p.z,.5))p.x-=vz*sp*dt*q;if(!blocked(p.x,p.z+vx*sp*dt*q,.5))p.z+=vx*sp*dt*q}}
+ const ta=aw?Math.atan2(dx,dz):mvg?Math.atan2(vx,vz):e.rotation.y;let a=ta-e.rotation.y;a=Math.atan2(Math.sin(a),Math.cos(a));e.rotation.y+=a*Math.min(1,dt*8);
+ if(u.bd)u.bd.position.y=mvg?Math.abs(Math.sin(u.ph))*.05:0;if(u.aL&&u.aR){if(u.arm){u.aR.rotation.x=-1.35;u.aL.rotation.x=-1.1}else{u.aL.rotation.x=u.aR.rotation.x=-1.35+Math.sin(u.ph*.5)*.12}}}
+const _updE13=updE;updE=function(e,dt){if(e.userData.xe)return xeAI(e,dt);_updE13(e,dt)};
+const _killE13=killE;killE=function(e,hd,by){_killE13(e,hd,by);const u=e.userData;if(!EXT.on||!u.xe)return;if(u.xp&&u.xp.dead)u.xp.dead[u.xs]=1;if(u.xp&&u.xp.al){const i=u.xp.al.indexOf(e);if(i>=0)u.xp.al.splice(i,1)}RAID.kills++;
+ if(u.arm){const w=Math.random();if(w<.4)lootAdd({k:'ammo',g:gi,q:Math.max(10,Math.round(G[gi].m*.8)),n:G[gi].n.split(' ')[0]+' AMMO',v:15});else if(w<.6)lootAdd({k:'plate',n:'ARMOR PLATE +30',v:60});else if(w<.8)lootAdd(Math.random()<.5?{k:'food',n:'RATIONS',v:25}:{k:'water',n:'CANTEEN',v:20})}else if(Math.random()<.15)lootAdd({k:'food',n:'SCRAP MEAT',v:15})};
+const _nw13=nextWave;nextWave=function(){if(EXT.on)return;_nw13()};
+const _hurt13=hurt;hurt=function(d){if(EXT.on&&RAID.ap>0){const ab=Math.min(RAID.ap,d*(.55+RAID.dr));RAID.ap-=ab;d-=ab}_hurt13(d)};
+const _die13=die;die=function(){if(EXT.on){xEnd(0,'YOU WERE KILLED');return}_die13()};
+// ---- raid flow ----
+function xStart(){audio();EXT.go=1;mode=1;ARMF=0;try{start(0)}catch(e){console.error(e)}const X=RAID;EXT.on=1;mode=1;P.x=X.sp.x;P.z=X.sp.z;lx=P.x;lz=P.z;yaw=Math.atan2(P.x,P.z)+3.14159*0;yaw=Math.atan2(P.x,P.z);pitch=0;own=G.map(()=>0);own[0]=1;gi=0;ammo=G.map((g,i)=>stf(i).mag);res=G.map(()=>0);res[0]=G[0].m*3;hp=mhp=100;gun();state='play';paused=false;$('hud').hidden=false;$('xhud').style.display='block';$('xlog').style.display='block';X.tk=0;bn('EXTRACTION RAID - 45:00');try{flow()}catch(e){}}
+function xClean(){EXT.on=0;mode=0;ARMF=0;['xhud','xlog','xpr','xal','xmap'].forEach(i=>$(i).style.display='none');clearTimeout(XTR);if(cam.far>300){cam.far=300;cam.updateProjectionMatrix()}}
+function xEnd(ok,why){if(!EXT.on)return;const X=RAID;xClean();state='menu';try{document.exitPointerLock()}catch(e){}paused=false;$('hud').hidden=true;let h='',b=0,nw=0;
+ if(ok){const un=[];X.loot.forEach(it=>{if(it.k=='gun'&&!gunOwned(it.g)){SV.ogn.push(it.g);un.push('NEW GUN: '+it.n)}else if(it.k=='mod'&&!(SV.omd||[]).includes(it.id)){SV.omd.push(it.id);un.push('NEW MOD: '+it.n)}else if(it.k!='key')b+=it.v});SV.bones+=b;try{gainXP(120+Math.round(X.val/8))}catch(e){}save();
+  h='<h1 style="color:#6ad06a">EXTRACTED!</h1><div class="sb">'+X.loot.length+' ITEMS &middot; '+X.kills+' KILLS &middot; +'+b+' BONES SOLD</div>'+(un.length?'<ul>'+un.map(x=>'<li><b style="color:#f2a900">'+x+'</b></li>').join('')+'</ul>':'')+'<ul>'+X.loot.slice(-14).map(i=>'<li>'+i.n+' ('+i.v+')</li>').join('')+'</ul>'}
+ else h='<h1 style="color:#ff5a40">'+why+'</h1><div class="sb">YOU LOST EVERYTHING YOU CARRIED</div><ul>'+(X.loot.length?X.loot.slice(-10).map(i=>'<li>'+i.n+' ('+i.v+')</li>').join(''):'<li>You had nothing worth losing.</li>')+'</ul>';
+ $('xe').innerHTML='<div class="xp">'+h+'<div class="xb"><button id="xhm" class="pd">RETURN TO CAMP (A)</button></div></div>';$('xe').classList.add('on');XE.open=1;$('xhm').onclick=xHome;RAID=null}
+function xHome(){if(!XE.open)return;XE.open=0;$('xe').classList.remove('on');try{enterCamp()}catch(e){console.error(e)}}
+// ---- per-frame ----
+let xHt=0,xZt=0;
+function xStep(dt){const X=RAID;if(!X)return;X.t-=dt;X.pt+=dt;if(X.t<=0){xEnd(0,'TIME RAN OUT');return}
+ X.food=Math.max(0,X.food-dt*.045);X.water=Math.max(0,X.water-dt*.065);if(X.food<=0||X.water<=0){hp-=dt*1.6;if(hp<=0){hp=0;die();return}}
+ if(gp.e[14])xEat(0);if(gp.e[15])xEat(1);if(gp.e[8])xMap();
+ xZt-=dt;if(xZt<=0){xZt=.5;const px=P.x,pz=P.z;X.ch.forEach(c=>{const d=Math.hypot(c.x-px,c.z-pz);if(d<120&&!c.g){c.g=mkChest(c);scene.add(c.g)}else if(d>150&&c.g){scene.remove(c.g);c.g=null}});
+  [...X.poi,...X.vt].forEach(o=>{const d=Math.hypot(o.x-px,o.z-pz);if(d<230)showObj(o);else if(d>270)hideObj(o);if(d<135&&!o.act){o.act=1;o.al=[];o.sl.forEach((s,i)=>{if(!o.dead[i])addX(s.k,s.x,s.z,o,i,o.op)})}else if(d>200&&o.act){o.act=0;(o.al||[]).forEach(e=>{if(e.userData.dead)return;scene.remove(e);const i=es.indexOf(e);if(i>=0)es.splice(i,1)});o.al=[]}})}
+ const sr=X.sr;X.rt-=dt;if(X.rt<=0){X.rt=210;if(es.filter(e=>e.userData.xr).length<3)xRaiders(2)}
+ if(X.sq>0){X.sq-=dt;if(X.sq<=0)xRaiders(3)}
+ if(X.al>0){X.al-=dt;X.sirT=(X.sirT||0)-dt;if(X.sirT<=0&&AC){X.sirT=.45;const f=X.sirF=!X.sirF;note(f?640:880,AC.currentTime,.42,'sawtooth',.28,mg,f?880:640)}$('xal').style.display='block'}else $('xal').style.display='none';
+ X.vt.forEach(v=>{if(v.op&&v.dm&&v.dm.position.y<7)v.dm.position.y+=dt*2.2;if(v.lm)v.lm.material.emissiveIntensity=v.op?1+Math.sin(X.pt*8):0.2});X.ch.forEach(c=>{if(c.g&&c.open){const l=c.g.userData.lid;l.rotation.x+=(-1.35-l.rotation.x)*Math.min(1,dt*8)}});
+ let best=null,bd=99,txt='';X.ch.forEach(c=>{if(c.open||!c.g)return;const d=Math.hypot(c.x-P.x,c.z-P.z);if(d<2.6&&d<bd){bd=d;best=c}});
+ if(best)txt='OPEN '+({ammo:'AMMO CRATE',gun:'GUN CASE',armor:'ARMOR CRATE',lunch:'LUNCHBOX',vault:'VAULT CACHE'})[best.t];else X.vt.forEach(v=>{if(v.op)return;const d=Math.hypot(v.x-P.x,v.z+6-P.z);if(d<5){best=v;txt=X.keys>0?'USE KEY - OPEN VAULT (ALARM!)':'VAULT LOCKED - NEEDS A KEY'}});
+ X.near=best;const pr=$('xpr');pr.style.display=best?'block':'none';if(best)pr.innerHTML='<b>'+(padOn?'X':'E')+'</b> '+txt;
+ if(best&&gp.e[2])xUse();
+ let on=0;X.xp.forEach(p=>{if(Math.hypot(p.x-P.x,p.z-P.z)<6.5)on=1});if(on){X.ex+=dt;if(X.ex>=8){xEnd(1);return}}else X.ex=Math.max(0,X.ex-dt*2);
+ xHt-=dt;if(xHt<=0){xHt=.2;xHud()}}
+function xRaiders(n){const X=RAID;for(let i=0;i<n;i++){let x,z,a=0;do{const an=Math.random()*6.28,r=70+Math.random()*40;x=P.x+Math.cos(an)*r;z=P.z+Math.sin(an)*r;a++}while(blocked(x,z,1)&&a<20);const e=addX(Math.random()<.3?'h':'a',x,z,null,i,1);if(e)e.userData.xr=1}bn('RAIDERS NEARBY!')}
+function xUse(){const X=RAID,c=X.near;if(!c||state!='play'||paused)return;X.near=null;
+ if(c.vault){if(X.keys<=0){bn('NEEDS A VAULT KEY');return}X.keys--;c.op=1;X.al=45;X.sq=12;es.forEach(e=>{const u=e.userData;if(u.xe&&Math.hypot(e.position.x-c.x,e.position.z-c.z)<170)u.xal=1});c.act&&0;if(c.ds){const i=solids.indexOf(c.ds);if(i>=0)solids.splice(i,1)}bn('VAULT OPENED - ALARM!');if(AC)note(90,AC.currentTime,.8,'sawtooth',.4,mg,50);return}
+ c.open=1;if(c.g)c.g.userData.lid.rotation.x=-.1;rollLoot(c.t,c.v).forEach(lootAdd);if(AC)note(200,AC.currentTime,.12,'square',.12,mg,120)}
+addEventListener('keydown',e=>{if(!EXT.on||state!='play'||paused||e.repeat)return;if(e.code=='KeyE')xUse();else if(e.code=='KeyZ')xEat(0);else if(e.code=='KeyX')xEat(1);else if(e.code=='KeyM')xMap()});
+function xMap(){const c=$('xmap');if(c.style.display=='block'){c.style.display='none';return}c.style.display='block';xMapDraw()}
+function xMapDraw(){const c=$('xmap'),g=c.getContext('2d'),X=RAID;if(!X)return;const S=640,k=S/(XH*2),tx=x=>(x+XH)*k,tz=z=>(z+XH)*k;g.fillStyle='#0b100c';g.fillRect(0,0,S,S);g.strokeStyle='#ffffff10';for(let i=0;i<=8;i++){g.beginPath();g.moveTo(i*S/8,0);g.lineTo(i*S/8,S);g.moveTo(0,i*S/8);g.lineTo(S,i*S/8);g.stroke()}
+ g.font='13px sans-serif';X.poi.forEach(p=>{g.fillStyle='#b8a878';g.fillRect(tx(p.x)-5,tz(p.z)-5,10,10);g.fillStyle='#d8d8d0';g.fillText(p.n,tx(p.x)+8,tz(p.z)+4)});X.vt.forEach(v=>{g.fillStyle=v.op?'#777':'#ff3b2a';g.beginPath();g.moveTo(tx(v.x),tz(v.z)-9);g.lineTo(tx(v.x)+8,tz(v.z));g.lineTo(tx(v.x),tz(v.z)+9);g.lineTo(tx(v.x)-8,tz(v.z));g.fill();g.fillStyle='#ff9a8a';g.fillText('VAULT',tx(v.x)+10,tz(v.z)+4)});
+ X.xp.forEach(p=>{g.fillStyle='#44ff77';g.beginPath();g.arc(tx(p.x),tz(p.z),8,0,6.3);g.fill();g.fillStyle='#bfffcf';g.fillText('EXIT',tx(p.x)+10,tz(p.z)+4)});
+ g.save();g.translate(tx(P.x),tz(P.z));g.rotate(-yaw+3.14159);g.fillStyle='#f2a900';g.beginPath();g.moveTo(0,-11);g.lineTo(7,8);g.lineTo(-7,8);g.fill();g.restore();g.fillStyle='#fff';g.fillText('M / SELECT to close - N is up',10,630)}
+function xHud(){const X=RAID;if(!X)return;const m=Math.floor(X.t/60),s=Math.floor(X.t%60);let nd=1e9,ne=null;X.xp.forEach(p=>{const d=Math.hypot(p.x-P.x,p.z-P.z);if(d<nd){nd=d;ne=p}});
+ const fx=-Math.sin(yaw),fz=-Math.cos(yaw),vx=ne.x-P.x,vz=ne.z-P.z,fw=vx*fx+vz*fz,rt=vx*Math.cos(yaw)-vz*Math.sin(yaw),ang=Math.atan2(rt,fw)*57.3;
+ $('xhud').innerHTML='<div class="t'+(X.t<300?' lo':'')+'" style="font-size:42px">'+String(m).padStart(2,'0')+':'+String(s).padStart(2,'0')+'</div>ARMOR <b>'+Math.round(X.ap)+'</b>/'+X.apmax+'<br>FOOD <b class="'+(X.food<25?'lo':'')+'">'+Math.round(X.food)+'</b> ['+X.fd+']  WATER <b class="'+(X.water<25?'lo':'')+'">'+Math.round(X.water)+'</b> ['+X.wt+']<br>KEYS <b>'+X.keys+'</b> &middot; LOOT <b>'+X.val+'</b><br><span style="color:#6ad06a">EXIT '+Math.round(nd)+'m <span style="display:inline-block;transform:rotate('+ang+'deg)">&#9650;</span></span>'+(X.ex>0?'<br><b>EXTRACTING '+X.ex.toFixed(1)+' / 8.0</b>':'')+'<br><small style="color:#aab">Z EAT &middot; X DRINK &middot; E USE &middot; M MAP</small>';
+ if(X.t<=300&&!X.w5){X.w5=1;bn('5 MINUTES LEFT - EXTRACT!')}if(X.t<=60&&!X.w1){X.w1=1;bn('60 SECONDS!')}}
+const _upd13=upd;upd=function(dt){if(EXT.on&&state=='play'&&!paused&&RAID){xStep(dt);if(!EXT.on)return}_upd13(dt);if(EXT.on&&RAID){try{$('top').textContent='EXTRACTION RAID - KILLS '+RAID.kills}catch(e){}const c=$('xmap');if(c.style.display=='block')xMapDraw()}};
+setInterval(()=>{if(EXT.on&&state!='play'&&!XE.open)xClean()},700);
+
+// ---------- v13b: tokens, Warden quests + token shop ----------
+const _fix14=fixSV;fixSV=function(){_fix14();const z=(k,d)=>{if(!Array.isArray(SV[k]))SV[k]=d};if(SV.tk==null)SV.tk=0;if(SV.wl==null)SV.wl=0;z('qp',[0,0,0,0,0,0,0,0,0,0]);z('qb',Array(24).fill(0));z('qd',Array(24).fill(0));z('kg',[]);if(SV.ka==null)SV.ka=0;if(SV.kd==null)SV.kd=0;if(SV.kf==null)SV.kf=0;if(SV.kw==null)SV.kw=0;z('kh',[0,0,0]);while(SV.qp.length<10)SV.qp.push(0)};
+const WLV=[0,50,130,250,420,650],wLvl=()=>{let l=1;WLV.forEach((v,i)=>{if((SV.wl||0)>=v)l=i+1});return l};
+// stat ids: 0 kill 1 raider kill 2 chest 3 gun case 4 eat/drink 5 key 6 vault 7 extract
+const XQ=[{n:'FIRST BLOOD',d:'Kill 10 enemies in raids',s:0,t:10,r:30,x:20,l:1},{n:'SCAVENGER',d:'Open 12 chests',s:2,t:12,r:40,x:25,l:1},{n:'SAFE RETURN',d:'Extract alive once',s:7,t:1,r:50,x:30,l:1},{n:'PROVISIONS',d:'Eat or drink 8 times',s:4,t:8,r:30,x:20,l:1},
+ {n:'RAIDER HUNTER',d:'Kill 5 armored gunmen',s:1,t:5,r:60,x:40,l:2},{n:'GUN COLLECTOR',d:'Open 6 gun cases',s:3,t:6,r:60,x:40,l:2},{n:'KEY HUNTER',d:'Find a vault key',s:5,t:1,r:80,x:50,l:3},{n:'CRACK THE VAULT',d:'Open a vault',s:6,t:1,r:150,x:80,l:4},{n:'VETERAN',d:'Extract alive 5 times',s:7,t:5,r:200,x:100,l:5},
+ {n:'BOUNTY (repeat)',d:'Kill 15 enemies',s:0,t:15,r:35,x:15,l:1,rp:1},{n:'LOOT RUN (repeat)',d:'Open 10 chests',s:2,t:10,r:35,x:15,l:1,rp:1},{n:'RAID BREAKER (repeat)',d:'Kill 8 armored gunmen',s:1,t:8,r:70,x:30,l:3,rp:1}];
+const qPr=i=>Math.min(XQ[i].t,(SV.qp[XQ[i].s]||0)-(SV.qb[i]||0));
+function qInc(s,n){if(EXT.on&&SV.qp)SV.qp[s]=(SV.qp[s]||0)+(n||1)}
+const _killE14=killE;killE=function(e,hd,by){_killE14(e,hd,by);const u=e.userData;if(EXT.on&&u.xe){qInc(0);if(u.arm)qInc(1)}};
+const _xUse14=xUse;xUse=function(){const c=RAID&&RAID.near;if(c&&!c.vault&&!c.open){qInc(2);if(c.t=='gun')qInc(3)}if(c&&c.vault&&!c.op&&RAID.keys>0)qInc(6);_xUse14()};
+const _lootAdd14=lootAdd;lootAdd=function(it){if(it.k=='key')qInc(5);_lootAdd14(it)};
+const _xEat14=xEat;xEat=function(w){const b=RAID.fd+RAID.wt;_xEat14(w);if(RAID.fd+RAID.wt<b)qInc(4)};
+// kit
+const KG=()=>G.map((g,i)=>i).filter(i=>i>0).sort((a,b)=>(G[a].ul||0)-(G[b].ul||0));
+function xItems(){const n=KG(),it=[];n.forEach((g,r)=>it.push({c:'GUNS (brought into raids - lost if you die)',n:G[g].n,d:'DMG '+G[g].d+' - comes with 3 mags',p:30+r*14,l:1+Math.floor(r*5/n.length),a:()=>{if(!SV.kg.includes(g))SV.kg.push(g);else return 0;return 1},own:()=>SV.kg.includes(g)}));
+ it.push({c:'ARMOR',n:'LIGHT ARMOR',d:'40 armor points',p:40,l:1,a:()=>{SV.ka=Math.max(SV.ka,40);return 1}},{c:'ARMOR',n:'MEDIUM ARMOR',d:'80 armor points',p:90,l:2,a:()=>{SV.ka=Math.max(SV.ka,80);return 1}},{c:'ARMOR',n:'CERAMIC INSERT',d:'+8% armor absorb (max 40%)',p:60,l:3,a:()=>{if(SV.kd>=40)return 0;SV.kd+=8;return 1}},{c:'ARMOR',n:'HEAVY ARMOR',d:'140 armor points',p:170,l:4,a:()=>{SV.ka=Math.max(SV.ka,140);return 1}});
+ it.push({c:'FOOD AND WATER',n:'ROAST MEAT',d:'+35 food',p:10,l:1,a:()=>{if(SV.kf>=9)return 0;SV.kf++;return 1}},{c:'FOOD AND WATER',n:'CLEAN WATER',d:'+40 water',p:8,l:1,a:()=>{if(SV.kw>=9)return 0;SV.kw++;return 1}});
+ it.push({c:'HEALS',n:'BANDAGE',d:'Restores 25 HP',p:15,l:1,a:()=>{SV.kh[0]++;return 1}},{c:'HEALS',n:'FIELD MEDKIT',d:'Restores 75 HP',p:40,l:2,a:()=>{SV.kh[1]++;return 1}},{c:'HEALS',n:'COMBAT STIM',d:'40 HP + 3s immunity',p:60,l:3,a:()=>{SV.kh[2]++;return 1}});
+ MODN.forEach((m,k)=>{for(let i=1;i<m[1].length;i++){const id=k*10+i;it.push({c:'GUN MODS (kept forever)',n:m[0]+': '+m[1][i].n,d:'Unlocks this mod for your guns',p:50+i*30+k*5,l:Math.min(6,1+i),a:()=>{if((SV.omd||[]).includes(id))return 0;SV.omd.push(id);return 1},own:()=>(SV.omd||[]).includes(id)})}});return it}
+function wRep(n){const b=wLvl();SV.wl+=n;const a=wLvl();if(a>b)try{bn('WARDEN LEVEL '+a+'!')}catch(e){}}
+function xKitTxt(){const k=[];SV.kg.forEach(g=>k.push(G[g].n));if(SV.ka)k.push('ARMOR '+SV.ka);if(SV.kd)k.push('INSERT +'+SV.kd+'%');if(SV.kf)k.push('FOOD x'+SV.kf);if(SV.kw)k.push('WATER x'+SV.kw);const h=SV.kh;if(h[0]+h[1]+h[2])k.push('HEALS '+h.join('/'));return k.length?k.join(' &middot; '):'nothing - buy gear in the SHOP tab'}
+// ui
+{const s=document.createElement('style');s.textContent=`.xtb{display:flex;gap:6px;margin:8px 0}.xtb button{flex:1;font-family:Teko,sans-serif;font-size:24px;letter-spacing:2px;padding:4px;background:#1b221c;color:#f1f1ee;border:1px solid #ffffff30;cursor:pointer}.xtb button.on{background:#f2a900;color:#111}.xtk{display:flex;justify-content:space-between;font-size:24px;color:#f2a900;letter-spacing:2px}
+.xrow{display:flex;align-items:center;gap:10px;border:1px solid #ffffff1c;background:#ffffff08;padding:5px 10px;margin:4px 0;font-size:20px}.xrow .m{flex:1}.xrow small{display:block;color:#aeb4ae;font-size:16px}.xrow button{font-family:Teko,sans-serif;font-size:22px;letter-spacing:2px;padding:3px 14px;background:#1b221c;color:#f1f1ee;border:1px solid #ffffff30;cursor:pointer;min-width:120px}.xrow button:hover,.xrow button.pd{background:#f2a900;color:#111}.xrow.lk{opacity:.5}
+.xh{border-left:5px solid #f2a900;padding-left:10px;font-size:22px;letter-spacing:2px;margin:10px 0 4px}.xbar{height:8px;background:#ffffff18;margin-top:3px}.xbar i{display:block;height:100%;background:#f2a900}#xc{max-height:56vh;overflow:auto}`;document.head.append(s)}
+XL.tab=0;XL.sel=0;
+openRaid=function(){state='menu';try{document.exitPointerLock()}catch(e){}campUI(0);CAMP.ui=1;XL.open=1;XL.cd=0;XL.tab=0;XL.sel=0;XL.nm=XN.slice().sort(()=>Math.random()-.5).slice(0,7);$('xl').innerHTML='<div class="xp"><h1>THE WARDEN</h1><div class="xtk"><span id="xtk"></span><span id="xlv"></span></div><div class="xtb" id="xtb"></div><div id="xc"></div></div>';$('xl').classList.add('on');xTabs()};
+function xTabs(){$('xtk').innerHTML='TOKENS '+SV.tk;const l=wLvl(),nx=WLV[l]!=null?WLV[l]:null;$('xlv').innerHTML='WARDEN LVL '+l+(nx?' ('+SV.wl+'/'+nx+')':' MAX');$('xtb').innerHTML='';['RAID','QUESTS','SHOP'].forEach((n,i)=>{const b=document.createElement('button');b.textContent=n;b.className=XL.tab==i?'on':'';b.onclick=()=>{XL.tab=i;XL.sel=0;xTabs()};$('xtb').append(b)});const c=$('xc'),sc=c.scrollTop;c.innerHTML='';
+ if(XL.tab==0){c.innerHTML='<div class="sb" style="color:#f2a900;font-size:22px">PvPvE &middot; 45:00 &middot; HUGE WASTELAND</div><ul><li>Loot POIs for ammo, guns, armor and food. Hunger and thirst are real.</li><li>Vault keys are rare (1 in 200 chests). Opening a vault sets off an ALARM.</li><li>Hold a green beacon for 8s to extract. <b style="color:#ff6a50">Die or run out the clock and you lose everything you carried.</b></li></ul><div class="xh">YOUR KIT</div><div style="font-size:20px">'+xKitTxt()+'</div><div class="xr" id="xro"></div><div class="xb"><button id="xgo" class="xit">DEPLOY (A)</button><button id="xbk">BACK (B)</button></div>';$('xro').innerHTML='<div class="me">YOU</div>'+XL.nm.map(n=>'<div>'+n+'</div>').join('');$('xgo').onclick=xDeploy;$('xbk').onclick=xBack}
+ else if(XL.tab==1){XQ.forEach((q,i)=>{const lk=wLvl()<q.l,done=!q.rp&&SV.qd[i],p=qPr(i),ok=!lk&&!done&&p>=q.t,r=document.createElement('div');r.className='xrow'+(lk||done?' lk':'');r.innerHTML='<div class="m"><b>'+q.n+'</b> - '+q.d+'<small>'+(lk?'UNLOCKS AT WARDEN LVL '+q.l:p+' / '+q.t+' &middot; reward '+q.r+' tokens, +'+q.x+' rep')+'</small>'+(lk||done?'':'<div class="xbar"><i style="width:'+p/q.t*100+'%"></i></div>')+'</div>';const b=document.createElement('button');b.textContent=done?'DONE':lk?'LOCKED':ok?'CLAIM':'IN PROGRESS';if(ok){b.className='xit';b.onclick=()=>{if(q.rp)SV.qb[i]=SV.qp[q.s];else SV.qd[i]=1;SV.tk+=q.r;wRep(q.x);save();xTabs()}}r.append(b);c.append(r)})}
+ else{let cat='';xItems().forEach(it=>{if(it.c!=cat){cat=it.c;const h=document.createElement('div');h.className='xh';h.textContent=cat;c.append(h)}const lk=wLvl()<it.l,ow=it.own&&it.own(),r=document.createElement('div');r.className='xrow'+(lk?' lk':'');r.innerHTML='<div class="m"><b>'+it.n+'</b><small>'+it.d+(lk?' - WARDEN LVL '+it.l+' REQUIRED':'')+'</small></div>';const b=document.createElement('button');b.textContent=ow?'OWNED':lk?'LVL '+it.l:it.p+' TOKENS';if(!lk&&!ow){b.className='xit';b.onclick=()=>{if(SV.tk<it.p){try{bn('NOT ENOUGH TOKENS')}catch(e){}return}if(!it.a())return;SV.tk-=it.p;wRep(Math.max(1,Math.floor(it.p/10)));save();xTabs()}}r.append(b);c.append(r)})}
+ c.scrollTop=sc;xSel()}
+function xSel(){const its=[...document.querySelectorAll('#xc .xit')];if(XL.sel>=its.length)XL.sel=Math.max(0,its.length-1);its.forEach((b,i)=>b.classList.toggle('pd',i==XL.sel&&padOn));if(padOn&&its[XL.sel])its[XL.sel].scrollIntoView({block:'nearest'})}
+const _mp14=menuPad;menuPad=function(){if(XL.open&&!XL.cd){const its=[...document.querySelectorAll('#xc .xit')];if(gp.e[4]||gp.e[5]){XL.tab=(XL.tab+(gp.e[5]?1:2))%3;XL.sel=0;xTabs()}else if(gp.e[13]){XL.sel=Math.min(its.length-1,XL.sel+1);xSel()}else if(gp.e[12]){XL.sel=Math.max(0,XL.sel-1);xSel()}else if(gp.e[0]&&its[XL.sel])its[XL.sel].click();else if(gp.e[1])xBack();return}if(XL.open)return;_mp14()};
+// raid kit
+const _xStart14=xStart;xStart=function(){_xStart14();const X=RAID;if(!X)return;SV.kg.forEach(g=>{own[g]=1;ammo[g]=stf(g).mag;res[g]=stf(g).mag*3});if(SV.ka){X.apmax=SV.ka;X.ap=SV.ka}X.dr=SV.kd/100;X.fd=SV.kf;X.wt=SV.kw;X.hi0=SV.hi.slice();SV.hi=SV.kh.slice();gun()};
+function xKit(ok){const X=RAID;if(!X||!X.hi0)return;const left=SV.hi.slice();SV.hi=X.hi0;X.hi0=null;if(ok){SV.kf=Math.min(9,X.fd);SV.kw=Math.min(9,X.wt);SV.kh=left}else{SV.kg=[];SV.ka=0;SV.kd=0;SV.kf=0;SV.kw=0;SV.kh=[0,0,0]}save()}
+const _xEnd14=xEnd;xEnd=function(ok,why){if(EXT.on&&RAID){xKit(ok);if(ok)qInc(7);save()}_xEnd14(ok,why)};
+setInterval(()=>{if(RAID&&RAID.hi0&&state!='play'&&!XE.open)xKit(0)},650);
+
 applyCX();if(location.protocol.startsWith('http'))setTimeout(netConnect,300);
 build(0);ov('UGH-STRIKE','Cave-bros vs BOOM-STICKS! Pick a mode and a rock-place:',1);
 const clk=new THREE.Clock();
