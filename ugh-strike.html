@@ -2862,11 +2862,14 @@ function fitT(el,aw,ah,org){
  const sg=el.innerHTML.length+'|'+innerWidth+'x'+innerHeight;if(SIG.get(el)===sg)return;
  el.style.transform='';const w=el.offsetWidth,h=el.offsetHeight;if(!w||!h)return;
  const z=Math.min(1,ah/h,aw/w);el.style.transformOrigin=org;el.style.transform=z<.995?'scale('+z.toFixed(3)+')':'';SIG.set(el,sg)}
+// raid panels re-render often: refit synchronously on every DOM change so there is no flicker
+const FQ=[['xl','#xl .xpn'],['xe','#xe .xpn'],['xinv','#xinv .xiv']];
+function fitNow(q){const e=document.querySelector(q);if(!e||!e.offsetWidth)return;e.style.transform='';const w=e.offsetWidth,h=e.offsetHeight;if(!w||!h)return;const z=Math.min(1,innerHeight*.95/h,innerWidth*.96/w);e.style.transformOrigin='center center';e.style.transform=z<.995?'scale('+z.toFixed(3)+')':''}
+FQ.forEach(([id,q])=>{const c=document.getElementById(id);if(!c||typeof MutationObserver=='undefined')return;new MutationObserver(()=>fitNow(q)).observe(c,{childList:true,subtree:true});new MutationObserver(()=>fitNow(q)).observe(c,{attributes:true,attributeFilter:['class']})});
+addEventListener('resize',()=>FQ.forEach(([id,q])=>fitNow(q)));
 setInterval(()=>{try{
  const o=$('ov'),mp=$('mp');
  if(o&&!o.hidden&&mp){const sg=mp.innerHTML.length+'|'+innerWidth+'x'+innerHeight+'|'+$('t').textContent;if(SIG.get(mp)!==sg){mp.style.transform='';const w=mp.offsetWidth,h=mp.offsetHeight,ah=o.clientHeight-mp.offsetTop-14,aw=o.clientWidth-mp.offsetLeft-14;if(w&&h){const z=Math.min(1,ah/h,aw/w);mp.style.transformOrigin='top left';mp.style.transform=z<.995?'scale('+z.toFixed(3)+')':''}SIG.set(mp,sg)}}
- const A=innerWidth*.96,B=innerHeight*.95;
- [['#xl.on .xpn'],['#xe.on .xpn'],['#xinv.on .xiv']].forEach(([q])=>{const e=document.querySelector(q);if(e)fitT(e,A,B,'center center')});
 }catch(e){}},250);
 }
 
