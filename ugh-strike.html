@@ -1355,8 +1355,8 @@ let ovFrom='menu';tab=-1;
 const _ov12=ov;ov=function(t,s,maps){if(maps!=1){_ov12(t,s,maps);return}
  const real=tab;if(tab<0)tab=5;_ov12(t,s,maps);tab=real;const side=document.querySelector('#mp .side');if(!side)return;const logo=side.querySelector('.logo');side.innerHTML='';if(logo)side.append(logo);
  const nv=(n,f,on)=>{const b=document.createElement('button');b.className='nv'+(on?' on':'');b.textContent=n;b.onclick=f;side.append(b)};
- if(real<0||real>=5){nv('GO TO CAMP',()=>enterCamp(),0);nv('ACCOUNT',()=>{tab=5;rf()},real==5);nv('SETTINGS',()=>{tab=6;rf()},real==6)}
- else{nv(['DEPLOY','LOCKER','','BATTLE PASS','ONLINE'][real]||'',()=>{},1);nv('◀ BACK TO '+(ovFrom=='camp'?'CAMP':'MENU'),()=>{if(ovFrom=='camp')enterCamp();else{tab=-1;rf()}},0)}
+ if(real<0||real>=5){nv('GO TO LOBBY',()=>enterCamp(),0);nv('ACCOUNT',()=>{tab=5;rf()},real==5);nv('SETTINGS',()=>{tab=6;rf()},real==6)}
+ else{nv(['DEPLOY','LOCKER','','BATTLE PASS','ONLINE'][real]||'',()=>{},1);nv('◀ BACK TO '+(ovFrom=='camp'?'LOBBY':'MENU'),()=>{if(ovFrom=='camp')enterCamp();else{tab=-1;rf()}},0)}
  const nw=document.querySelector('#mp .news');if(nw)nw.innerHTML='<b>THE CAMP</b><br>• Walk, trade, relax<br>• Armorer: guns<br>• Blacksmith: mods &amp; skins<br>• Tailor: clothes<br>• Medic: healing (H)';
  if(real<0){const fit=document.querySelector('#mp .fit');if(fit){fit.style.zoom=1;fit.innerHTML='<div class="hero"><h2>BASE CAMP</h2><p>A quiet clearing in the woods. No weapons, no rushing. Walk around, talk to the traders, spend your bones, then head to the war table when you are ready to deploy.</p><div class="hl"><b>ARMORER</b> sells guns<b>BLACKSMITH</b> sells gun mods &amp; skins<b>TAILOR</b> sells clothes<b>MEDIC</b> sells healing items</div></div>'}}};
 const _build12=build;build=function(mi){ren.outputEncoding=THREE.LinearEncoding;ren.shadowMap.autoUpdate=true;_build12(mi)};
@@ -2430,6 +2430,164 @@ const _upd19=upd;upd=function(dt){
  b.onclick=()=>{if(!dp)return;dp.prompt();dp.userChoice.finally(()=>{dp=null;b.style.display='none'})};
  addEventListener('appinstalled',()=>{dp=null;b.style.display='none'});
  setInterval(()=>{const o=$('ov');b.style.display=(dp&&o&&!o.hidden&&!matchMedia('(display-mode: fullscreen)').matches)?'block':'none'},800);
+})();
+
+// ---------- v23: LOBBY replaces the walkable camp (menu-style hub) ----------
+(function(){
+const LB={on:0,t:0,dest:0,fo:null,ax:0,ay:0,fig:[],fl:[]};window.LB=LB;
+const st=document.createElement('style');st.textContent=`
+#lb{position:fixed;inset:0;z-index:55;display:none;font-family:Teko,'Arial Narrow',sans-serif;color:#f1f1ee;pointer-events:none;user-select:none}
+#lb *{box-sizing:border-box}#lb button{pointer-events:auto;font-family:inherit;cursor:pointer}
+#lb .top{position:absolute;left:0;right:0;top:0;height:58px;background:linear-gradient(#000d,#0000);display:flex;align-items:center;justify-content:space-between;padding:0 16px}
+#lb .tabs{display:flex;gap:4px;align-items:center}
+#lb .tabs i{font-style:normal;font-size:14px;border:1px solid #fff6;border-radius:3px;padding:0 6px;opacity:.7;margin:0 6px}
+#lb .tabs button{background:none;border:0;color:#e6e2d6;font-size:24px;letter-spacing:1px;padding:2px 14px;border-radius:20px;opacity:.85}
+#lb .tabs button.on{background:#f1f1ee;color:#111;opacity:1}
+#lb .cur{display:flex;gap:8px;align-items:center;font-size:22px}
+#lb .cur span{background:#0009;border:1px solid #fff3;border-radius:14px;padding:0 12px}
+#lb .cur em{font-style:normal;background:#f1f1ee;color:#111;border-radius:50%;width:34px;height:34px;display:flex;align-items:center;justify-content:center;font-size:20px;border:3px solid #d9482b}
+#lb .pnl{background:rgba(8,10,9,.88);border-left:4px solid #f5b400;margin-bottom:12px}
+#lb .pnl h3{margin:0;padding:3px 12px;background:#f1f1ee;color:#111;font-size:22px;letter-spacing:2px;font-weight:600}
+#lb .ft{padding:8px 12px 6px;border-bottom:1px solid #fff2}
+#lb .ft b{font-size:20px;font-weight:500;display:block}#lb .ft small{color:#aeb4ae;font-size:15px;display:block;line-height:1}
+#lb .bar{height:6px;background:#fff2;margin-top:4px}#lb .bar i{display:block;height:100%;background:#f5b400}
+#lb .ft .n{float:right;font-size:17px;color:#cfd3cf}
+#lb .left{position:absolute;left:0;top:70px;width:350px}
+#lb .right{position:absolute;right:18px;bottom:50px;width:350px}
+#lb .dest{display:flex;gap:6px;padding:10px 12px 4px}
+#lb .dest button{flex:1;background:#1a201b;border:2px solid #fff3;color:#e6e2d6;font-size:18px;line-height:1.05;padding:8px 2px;text-align:center}
+#lb .dest button.on{border-color:#f5b400;background:#2a2410;color:#fff}
+#lb .dest button span{display:block;font-size:30px}
+#lb .dsc{padding:2px 14px 8px;color:#bfc4bf;font-size:18px;min-height:46px}
+#lb .play{display:block;width:calc(100% - 24px);margin:0 12px 12px;background:#f5b400;color:#111;border:0;font-size:46px;letter-spacing:3px;font-weight:700;padding:0 0 0 20px;text-align:left;height:64px;line-height:64px}
+#lb .play:before{content:'\\25B6';font-size:34px;margin-right:16px;vertical-align:middle}
+#lb .bot{position:absolute;left:14px;right:14px;bottom:10px;display:flex;justify-content:space-between;align-items:center;font-size:20px}
+#lb .bot button{background:#f1f1ee;color:#111;border:0;border-radius:20px;font-size:22px;padding:0 18px;margin-right:8px}
+#lb .bot span{color:#cfd3cf;text-shadow:0 1px 3px #000}
+#lb .tag{position:absolute;left:50%;top:15%;transform:translateX(-50%);background:#0009;border:1px solid #fff4;padding:0 12px;font-size:20px;border-radius:12px}
+#lb .pop{position:absolute;left:50%;top:80px;transform:translateX(-50%);width:420px;display:none}
+#lb .pop button{display:block;width:calc(100% - 24px);margin:6px 12px;background:#1a201b;border:1px solid #fff3;color:#f1f1ee;font-size:26px;text-align:left;padding:4px 14px}
+#lb .pop button small{display:block;font-size:16px;color:#aeb4ae}
+#lb button.fo{outline:4px solid #fff;outline-offset:2px}
+#lb button:hover{filter:brightness(1.15)}`;document.head.append(st);
+const lb=document.createElement('div');lb.id='lb';
+lb.innerHTML=`<div class="top"><div class="tabs"><i>LB</i><button data-t="0" class="on">PLAY</button><button data-t="1">WORKSHOP</button><button data-t="2">RAIDER</button><button data-t="3">TRADERS</button><button data-t="4">PASS</button><button data-t="5">ONLINE</button><i>RB</i></div><div class="cur" id="lbc"></div></div>
+<div class="tag" id="lbtag"></div>
+<div class="left"><div class="pnl"><h3>FEATS</h3><div id="lbf"></div></div><div class="pnl"><h3>WARDEN</h3><div id="lbw"></div></div></div>
+<div class="pop pnl" id="lbp"><h3>TRADERS</h3><div id="lbpl"></div></div>
+<div class="right"><div class="pnl"><h3>CHOOSE YOUR DESTINATION</h3><div class="dest" id="lbd"></div><div class="dsc" id="lbds"></div><button class="play" id="lbplay">PLAY</button></div></div>
+<div class="bot"><div><button id="lbinv">INVENTORY</button></div><span id="lbh"></span></div>`;
+document.body.append(lb);
+const DEST=[['☠','EXTRACTION<br>RAID','Drop in, loot, fight the guards and the OMNI-CORP TOWER, then extract alive.',()=>openRaid()],['🦴','BONK<br>WAVES','Solo cave-bro waves and zombie-night rounds. Pick your map.',()=>openStation(0)],['🌐','ONLINE','Co-op, deathmatch and capture the flag with other cavemen.',()=>openStation(4)]];
+const TR=[['armorer','ARMORER','Armor and plates'],['smith','BLACKSMITH','Weapons and upgrades'],['tailor','TAILOR','Outfits and looks'],['medic','MEDIC','Healing supplies']];
+function tab(i){
+ lb.querySelectorAll('.tabs button').forEach(b=>b.classList.toggle('on',+b.dataset.t==(i==3?3:0)&&true));
+ $('lbp').style.display=i==3?'block':'none';
+ if(i==1)openStation(1);else if(i==2)campShop('locker');else if(i==4)openStation(3);else if(i==5)openStation(4);
+}
+lb.querySelectorAll('.tabs button').forEach(b=>b.onclick=()=>{const i=+b.dataset.t;if(i==3){const o=$('lbp').style.display=='block';$('lbp').style.display=o?'none':'block';lb.querySelectorAll('.tabs button').forEach(x=>x.classList.toggle('on',+x.dataset.t==(o?0:3)));return}tab(i);lb.querySelectorAll('.tabs button').forEach(x=>x.classList.toggle('on',+x.dataset.t==0))});
+$('lbpl').innerHTML=TR.map(t=>`<button data-id="${t[0]}">${t[1]}<small>${t[2]}</small></button>`).join('')+'<button data-id="raid">RAID SHOP<small>Warden shop for tokens</small></button>';
+$('lbpl').querySelectorAll('button').forEach(b=>b.onclick=()=>{$('lbp').style.display='none';lb.querySelectorAll('.tabs button').forEach(x=>x.classList.toggle('on',+x.dataset.t==0));if(b.dataset.id=='raid'){openRaid();XL.tab=2;XL.sel=0;xTabs()}else campShop(b.dataset.id)});
+$('lbd').innerHTML=DEST.map((d,i)=>`<button data-i="${i}"><span>${d[0]}</span>${d[1]}</button>`).join('');
+function setDest(i){LB.dest=i;$('lbd').querySelectorAll('button').forEach(b=>b.classList.toggle('on',+b.dataset.i==i));$('lbds').textContent=DEST[i][2]}
+$('lbd').querySelectorAll('button').forEach(b=>b.onclick=()=>setDest(+b.dataset.i));setDest(0);
+$('lbplay').onclick=()=>{try{audio()}catch(e){}DEST[LB.dest][3]()};
+$('lbinv').onclick=()=>{try{audio()}catch(e){}campShop('locker')};
+function refresh(){
+ try{const l=wLvl();$('lbc').innerHTML='<span>🦴 '+(SV.bones||0)+'</span><span>TOKENS '+(SV.tk||0)+'</span><em>'+l+'</em>';
+ const act=XQ.map((q,i)=>({q,i,p:qPr(i)})).filter(o=>wLvl()>=o.q.l&&(o.q.rp||!SV.qd[o.i])).sort((a,b)=>b.p/b.q.t-a.p/a.q.t);
+ $('lbf').innerHTML=act.slice(0,3).map(o=>`<div class="ft"><b>${o.q.n}<span class="n">${o.p}/${o.q.t}</span></b><small>${o.q.d}</small><div class="bar"><i style="width:${Math.min(100,o.p/o.q.t*100)}%"></i></div></div>`).join('')||'<div class="ft"><b>ALL FEATS DONE</b></div>';
+ const rd=act.filter(o=>o.p>=o.q.t).length,lo=WLV[l-1]||0,nx=WLV[l];
+ $('lbw').innerHTML=`<div class="ft"><b>WARDEN LEVEL ${l}<span class="n">${nx!=null?(SV.wl||0)+'/'+nx:'MAX'}</span></b><small>${rd?rd+' FEAT'+(rd>1?'S':'')+' READY TO CLAIM':'Raid to earn Warden XP'}</small><div class="bar"><i style="width:${nx!=null?Math.min(100,((SV.wl||0)-lo)/(nx-lo)*100):100}%"></i></div></div>`;
+ $('lbtag').textContent='CAVE BRO · LVL '+l}catch(e){}
+ $('lbh').textContent=padOn?'LB/RB TABS · D-PAD MOVE · A SELECT · B CLOSE':'';
+}
+// ---- 3D stage ----
+function stage(){
+ try{if(scene)disposeScene(scene)}catch(e){}
+ scene=new THREE.Scene();scene.userData.lobby=1;solids=[];walls=[];es=[];cors=[];rocks=[];try{fxReset()}catch(e){}try{PILES.length=0;TORCH.length=0}catch(e){}SUN=null;drops=[];stn=[];
+ CAMP.st=[];CAMP.npc=[];CAMP.lights=[];CAMP.sm=[];CAMP.fl=[];LB.fig=[];LB.fl=[];
+ try{ren.shadowMap.autoUpdate=false;ren.shadowMap.enabled=false;ren.toneMapping=THREE.ACESFilmicToneMapping;ren.toneMappingExposure=1.1}catch(e){}
+ scene.add(cam);scene.background=new THREE.Color(0x120b07);scene.fog=new THREE.FogExp2(0x1a0f08,.045);
+ const M=(c,o)=>new THREE.MeshStandardMaterial(Object.assign({color:c,roughness:.9,metalness:0},o||{}));
+ const bx=(w,h,d,c,x,y,z,o)=>{const m=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),M(c,o));m.position.set(x,y,z);scene.add(m);return m};
+ const cy=(r,h,c,x,y,z,o)=>{const m=new THREE.Mesh(new THREE.CylinderGeometry(r,r,h,12),M(c,o));m.position.set(x,y,z);scene.add(m);return m};
+ scene.add(new THREE.HemisphereLight(0xffd8a8,0x20140c,.7));
+ const key=new THREE.DirectionalLight(0xffe2b8,.55);key.position.set(2,5,7);scene.add(key);
+ bx(60,.3,40,0x2a1c12,0,-.15,-6);                                   // floor
+ cy(4.4,.18,0x4a3a2a,0,.09,0);                                      // dais
+ bx(60,14,1,0x33241a,0,6,-12);bx(1,14,40,0x2c1f15,-18,6,-6);bx(1,14,40,0x2c1f15,18,6,-6); // walls
+ for(let i=-4;i<=4;i++){bx(.7,11,.7,0x5a4028,i*4.2,5.2,-11.4);}
+ bx(40,.8,.8,0x5a4028,0,10.6,-11.4);bx(40,.6,.6,0x5a4028,0,7,-11.4);
+ // big sign
+ const cv2=document.createElement('canvas');cv2.width=1024;cv2.height=256;const g=cv2.getContext('2d');g.fillStyle='#2a1a10';g.fillRect(0,0,1024,256);g.strokeStyle='#d9482b';g.lineWidth=10;g.strokeRect(10,10,1004,236);g.fillStyle='#f0c878';g.font='bold 150px Impact,Arial Black,sans-serif';g.textAlign='center';g.textBaseline='middle';g.fillText('UGH-STRIKE',512,138);
+ const sgm=new THREE.Mesh(new THREE.PlaneGeometry(9,2.25),new THREE.MeshBasicMaterial({map:new THREE.CanvasTexture(cv2)}));sgm.position.set(0,8.6,-10.8);scene.add(sgm);
+ // stalls left/right with awnings, crates, barrels
+ [-1,1].forEach(s=>{
+  for(let k=0;k<2;k++){const x=s*(9+k*5),z=-7.5-k*.5;bx(4.4,2.2,2.2,0x5a3e26,x,1.1,z);bx(5,.25,3,[0x8a3a2a,0x3a5a6a,0x6a5a2a][(k+(s>0?1:0))%3],x,3.4,z+.2,{roughness:.8});bx(.2,2.3,.2,0x3a281a,x-2.2,2.3,z+1.1);bx(.2,2.3,.2,0x3a281a,x+2.2,2.3,z+1.1);
+   bx(1.4,.15,.6,0xcaa86a,x,1.3,z+1.3);const lamp=new THREE.Mesh(new THREE.SphereGeometry(.18,8,6),new THREE.MeshBasicMaterial({color:0xffc070}));lamp.position.set(x,3,z+1.4);scene.add(lamp)}
+  for(let k=0;k<3;k++){bx(1.1,1.1,1.1,0x6a4a2a,s*(6+k*1.2),.55,-4.5+k*.4);}
+  for(let k=0;k<3;k++)cy(.5,1.3,0x4a3626,s*(7.2+k*1.1),.65,-3.2);
+ });
+ // hanging bulbs (catenary strings)
+ for(let r=0;r<3;r++){const z=-8+r*3.2;for(let i=0;i<=18;i++){const x=-15+i*(30/18),y=9.2-Math.sin(i/18*Math.PI)*-1.2-r*.5-Math.abs(Math.sin(i/18*Math.PI*3))*.0;const b=new THREE.Mesh(new THREE.SphereGeometry(.13,6,5),new THREE.MeshBasicMaterial({color:i%2?0xffcf80:0xffa860}));b.position.set(x,y-(r*.4),z);scene.add(b)}}
+ // fire pit behind squad + torches
+ const fire=new THREE.Mesh(new THREE.ConeGeometry(.6,1.4,6),new THREE.MeshBasicMaterial({color:0xff8a2a}));fire.position.set(0,.9,-5);scene.add(fire);LB.fire=fire;
+ for(let a=0;a<7;a++)bx(.6,.5,.6,0x6a6560,Math.cos(a)*1.1,.25,-5+Math.sin(a)*1.1);
+ const L=(c,i,r,x,y,z)=>{const l=new THREE.PointLight(c,i,r);l.position.set(x,y,z);scene.add(l);return l};
+ LB.fl=[L(0xff9a40,2.4,22,0,2,-4.3),L(0xffc890,1.3,16,-6,5,2),L(0xffb070,1.3,16,6,5,2),L(0xffe0b0,.9,12,0,3.5,5)];
+ // the squad
+ const O=[{skin:0xc89878,shirt:0x6a4a30,pants:0x3a2a1a,hair:0x2a1a10,beard:1},{skin:0xb88060,shirt:0x8a5a30,pants:0x2a2420,hair:0x1a1210,beard:1,sc:1.06},{skin:0xe0b898,shirt:0x4a5a3a,pants:0x3a3040,hair:0x7a5a3a}];
+ [[-1.9,-.35,.28],[0,.35,0],[1.9,-.35,-.28]].forEach((p,i)=>{try{const n=mkNPC(O[i]);n.userData.live=1;n.position.set(p[0],.12,p[1]);n.rotation.y=p[2];scene.add(n);LB.fig.push({n,y:.12,ph:i*1.7,r:p[2]})}catch(e){console.error(e)}});
+ scene.updateMatrixWorld(true);
+ P.x=0;P.z=0;
+}
+let _buildOld=buildCamp;buildCamp=function(){stage()};
+const _ec=enterCamp;
+enterCamp=function(){
+ ovFrom='camp';$('ov').hidden=true;document.body.classList.remove('inmenu');$('hud').hidden=true;try{$('nlog').className='';$('ret').style.opacity=0;$('scope').style.opacity=0}catch(e){}
+ try{document.exitPointerLock()}catch(e){}
+ paused=false;state='camp';CAMP.ui=1;CAMP.pz=0;LB.on=1;LB.t=0;yaw=0;pitch=0;
+ try{stage()}catch(e){console.error(e)}
+ cam.fov=42;cam.updateProjectionMatrix();if(mus)mus.gain.value=SV.mute?0:.3;
+ ['cprompt','cshop','cpause','chint'].forEach(id=>{const e=$(id);if(e)e.style.display='none'});
+ try{setRes(Math.min(prCur,1.25))}catch(e){}
+ lb.style.display='block';$('lbp').style.display='none';lb.querySelectorAll('.tabs button').forEach(x=>x.classList.toggle('on',+x.dataset.t==0));refresh();LB.fo=null;
+};
+// keep camp-era code from re-enabling walking / pointer lock / hint
+const _cu=campUI;campUI=function(v){_cu(v);if(state=='camp'&&LB.on){CAMP.ui=1;const h=$('chint');if(h)h.style.display='none'}};
+{const _r=cv.requestPointerLock.bind(cv);cv.requestPointerLock=function(){if(LB.on&&state=='camp')return;return _r()}}
+// ---- per-frame ----
+campStep=function(dt){
+ LB.t+=dt;const t=LB.t;CAMP.t=t;
+ try{
+  LB.fig.forEach(f=>{const n=f.n;n.position.y=f.y+Math.sin(t*1.7+f.ph)*.012;n.rotation.y=f.r+Math.sin(t*.5+f.ph)*.06;const u=n.userData;if(u.head)u.head.rotation.y=Math.sin(t*.7+f.ph)*.18;if(u.L&&u.L.a)u.L.a.rotation.x=Math.sin(t*1.7+f.ph)*.03;if(u.R&&u.R.a)u.R.a.rotation.x=-Math.sin(t*1.7+f.ph)*.03});
+  if(LB.fire){LB.fire.scale.set(1+Math.sin(t*13)*.1,1+Math.sin(t*9+1)*.18,1+Math.sin(t*11)*.1)}
+  if(LB.fl[0])LB.fl[0].intensity=2.2+Math.sin(t*17)*.25+Math.sin(t*7)*.2;
+  cam.position.set(Math.sin(t*.25)*.35,1.45+Math.sin(t*.3)*.04,6.3);cam.lookAt(Math.sin(t*.25)*.1,1.3,0);
+ }catch(e){}
+ LB.rt=(LB.rt||0)+dt;if(LB.rt>1){LB.rt=0;refresh()}
+ pad();
+};
+// ---- controller navigation ----
+function vis(){const pop=$('lbp').style.display=='block';return[...lb.querySelectorAll('button')].filter(b=>b.offsetParent!==null&&(!pop||b.closest('#lbp')||b.closest('.tabs')))}
+function setFo(b){LB.fo=b;lb.querySelectorAll('button.fo').forEach(x=>x.classList.remove('fo'));if(b)b.classList.add('fo')}
+function move(dx,dy){const bs=vis();if(!bs.length)return;if(!LB.fo||!bs.includes(LB.fo)){setFo($('lbplay'));return}
+ const a=LB.fo.getBoundingClientRect(),ax=a.left+a.width/2,ay=a.top+a.height/2;let best=null,bs2=1e9;
+ bs.forEach(b=>{if(b===LB.fo)return;const r=b.getBoundingClientRect(),x=r.left+r.width/2-ax,y=r.top+r.height/2-ay,pr=dx?x*dx:y*dy,pp=Math.abs(dx?y:x);if(pr<=4)return;const s=pr+pp*2;if(s<bs2){bs2=s;best=b}});if(best)setFo(best)}
+function pad(){
+ if(!gp||!gp.e)return;const g=gp.e;if(!padOn){if(LB.fo)setFo(null);return}
+ if(!LB.fo)setFo($('lbplay'));
+ let dx=0,dy=0;if(g[12])dy=-1;if(g[13])dy=1;if(g[14])dx=-1;if(g[15])dx=1;
+ const sx=gp.a[0],sy=gp.a[1],nx=Math.abs(sx)>.6?Math.sign(sx):0,ny=Math.abs(sy)>.6?Math.sign(sy):0;if(nx&&nx!==LB.ax)dx=nx;if(ny&&ny!==LB.ay)dy=ny;LB.ax=nx;LB.ay=ny;
+ if(dx||dy)move(dx,dy);
+ if(g[4]||g[5]){const tb=[...lb.querySelectorAll('.tabs button')],i=tb.indexOf(LB.fo);const j=i<0?0:(i+(g[5]?1:tb.length-1))%tb.length;setFo(tb[j])}
+ if(g[0]&&LB.fo)LB.fo.click();
+ if(g[1]&&$('lbp').style.display=='block'){$('lbp').style.display='none';setFo($('lbplay'))}
+}
+// lobby visible only while in the camp state
+setInterval(()=>{if(state=='play')LB.on=0;lb.style.display=(state=='camp'&&LB.on)?'block':'none'},400);
+setTimeout(()=>{try{if(state!='play'&&!LB.on)enterCamp()}catch(e){console.error(e)}},500);
 })();
 
 applyCX();if(location.protocol.startsWith('http'))setTimeout(netConnect,300);
