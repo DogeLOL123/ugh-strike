@@ -2401,7 +2401,7 @@ function xpMove(dx,dy){
  ts.forEach(t=>{if(t===cur)return;const r=t.getBoundingClientRect(),x=r.left+r.width/2-ax,y=r.top+r.height/2-ay,pr=dx?x*dx:y*dy,pp=Math.abs(dx?y:x);if(pr<=2)return;const s=pr+pp*2.2;if(s<bs){bs=s;best=t}});
  if(best){XIsel=best.dataset.i;xiRender()}
 }
-const _xr19=xiRender;xiRender=function(){_xr19();const f=$('xinv').querySelector('.xiv>div:last-child');if(f&&padOn)f.innerHTML='D-PAD / STICK select &middot; A use &middot; X heal &middot; B close';
+const _xr19=xiRender;xiRender=function(){_xr19();const f=$('xinv').querySelector('.xiv>div:last-child');if(f&&padOn)f.innerHTML='D-PAD / STICK select &middot; A use &middot; X heal &middot; Y drop &middot; B close';
  const t=$('xinv').querySelector('.xgt.sel');if(t&&padOn)t.style.outline='3px solid #fff'};
 const _upd19=upd;upd=function(dt){
  if(XI.open&&gp&&gp.e){
@@ -2412,6 +2412,7 @@ const _upd19=upd;upd=function(dt){
   if(dx||dy)xpMove(dx,dy);
   if(g[0]){const b=$('xinv').querySelector('[data-x]');if(b)b.click()}
   if(g[2]){const h=SV.hi||[];for(let i=0;i<HEAL.length;i++)if(h[i]>0){xHeal(i);xiRender();break}}
+  if(g[3]){const sel=xiItems().out.find(q=>q.id==XIsel);if(sel&&sel.dr){sel.dr();XIsel=null;xiRender()}}
   g[12]=g[13]=g[14]=g[15]=0;
   if(g[9]){g[1]=1}
   gp.a[0]=gp.a[1]=0;
@@ -2475,7 +2476,7 @@ lb.innerHTML=`<div class="top"><div class="tabs"><i>LB</i><button data-t="0" cla
 <div class="left"><div class="pnl"><h3>FEATS</h3><div id="lbf"></div></div><div class="pnl"><h3>WARDEN</h3><div id="lbw"></div></div></div>
 <div class="pop pnl" id="lbp"><h3>TRADERS</h3><div id="lbpl"></div></div>
 <div class="right"><div class="pnl"><h3>CHOOSE YOUR DESTINATION</h3><div class="dest" id="lbd"></div><div class="dsc" id="lbds"></div><button class="play" id="lbplay">PLAY</button></div></div>
-<div class="bot"><div><button id="lbinv">INVENTORY</button></div><span id="lbh"></span></div>`;
+<div class="bot"><div><button id="lbinv">INVENTORY</button><button id="lbacc">ACCOUNT</button><button id="lbset">SETTINGS</button></div><span id="lbh"></span></div>`;
 document.body.append(lb);
 const DEST=[['☠','EXTRACTION<br>RAID','Drop in, loot, fight the guards and the OMNI-CORP TOWER, then extract alive.',()=>openRaid()],['🦴','BONK<br>WAVES','Solo cave-bro waves and zombie-night rounds. Pick your map.',()=>openStation(0)],['🌐','ONLINE','Co-op, deathmatch and capture the flag with other cavemen.',()=>openStation(4)]];
 const TR=[['armorer','ARMORER','Armor and plates'],['smith','BLACKSMITH','Weapons and upgrades'],['tailor','TAILOR','Outfits and looks'],['medic','MEDIC','Healing supplies']];
@@ -2491,6 +2492,7 @@ $('lbd').innerHTML=DEST.map((d,i)=>`<button data-i="${i}"><span>${d[0]}</span>${
 function setDest(i){LB.dest=i;$('lbd').querySelectorAll('button').forEach(b=>b.classList.toggle('on',+b.dataset.i==i));$('lbds').textContent=DEST[i][2]}
 $('lbd').querySelectorAll('button').forEach(b=>b.onclick=()=>setDest(+b.dataset.i));setDest(0);
 $('lbplay').onclick=()=>{try{audio()}catch(e){}DEST[LB.dest][3]()};
+$('lbacc').onclick=()=>{try{audio()}catch(e){}openStation(5)};$('lbset').onclick=()=>{try{audio()}catch(e){}openStation(6)};
 $('lbinv').onclick=()=>{try{audio()}catch(e){}campShop('locker')};
 function refresh(){
  try{const l=wLvl();$('lbc').innerHTML='<span>🦴 '+(SV.bones||0)+'</span><span>TOKENS '+(SV.tk||0)+'</span><em>'+l+'</em>';
@@ -2556,6 +2558,7 @@ const _ec=enterCamp;
 enterCamp=function(){
  ovFrom='camp';$('ov').hidden=true;document.body.classList.remove('inmenu');$('hud').hidden=true;try{$('nlog').className='';$('ret').style.opacity=0;$('scope').style.opacity=0}catch(e){}
  try{document.exitPointerLock()}catch(e){}
+ try{xAmbStop()}catch(e){}
  paused=false;state='camp';CAMP.ui=1;CAMP.pz=0;LB.on=1;LB.t=0;yaw=0;pitch=0;
  try{stage()}catch(e){console.error(e)}
  cam.fov=42;cam.updateProjectionMatrix();if(mus)mus.gain.value=SV.mute?0:.3;
@@ -2598,7 +2601,7 @@ function pad(){
  if(g[1]&&$('lbp').style.display=='block'){$('lbp').style.display='none';setFo($('lbplay'))}
 }
 // lobby visible only while in the camp state
-setInterval(()=>{if(state=='play'){LB.on=0;try{if(EXT.on&&mus&&mus.gain.value>0)mus.gain.value=0}catch(e){}}lb.style.display=(state=='camp'&&LB.on)?'block':'none'},400);
+setInterval(()=>{try{if(state!='play'&&XA.on)xAmbStop()}catch(e){}if(state=='play'){LB.on=0;try{if(EXT.on&&mus&&mus.gain.value>0)mus.gain.value=0}catch(e){}}lb.style.display=(state=='camp'&&LB.on)?'block':'none'},400);
 setTimeout(()=>{try{if(state!='play'&&!LB.on)enterCamp()}catch(e){console.error(e)}},500);
 })();
 
@@ -2738,6 +2741,7 @@ const st=document.createElement('style');st.textContent=`
 #pkb button{font:inherit;font-size:30px;min-width:58px;padding:4px 8px;background:var(--noise),linear-gradient(170deg,#4a382a,#33261c);color:#eadfc4;border:0;clip-path:var(--r2);box-shadow:inset 0 0 0 3px #0d0905;cursor:pointer}
 #pkb button.w{min-width:120px}
 #pkb .ft{text-align:center;color:#cdbb97;font-size:19px;margin-top:6px}`;
+st.textContent+=`#hi12{display:none!important}`;
 document.head.append(st);
 const bx=document.createElement('div');bx.id='pkb';document.body.append(bx);
 const ROWS=[['1','2','3','4','5','6','7','8','9','0'],['q','w','e','r','t','y','u','i','o','p'],['a','s','d','f','g','h','j','k','l','@'],['z','x','c','v','b','n','m','.','_','-']];
@@ -2785,6 +2789,86 @@ menuPad=function(){
  if(gp.e[0]){try{audio()}catch(e){}if(el.tagName=='INPUT')openKb22(el);else if(el.tagName=='SELECT'){el.selectedIndex=(el.selectedIndex+1)%el.options.length;el.dispatchEvent(new Event('change',{bubbles:true}))}else el.click()}
  if(gp.e[1]&&state!='play'){const bk=els.find(b=>/^\s*(◀|BACK|RETURN|CLOSE|LEAVE|GO TO LOBBY)/i.test(b.textContent));if(bk)bk.click()}
 }}
+
+// ---------- v26: lobby is the title screen, new pause menu (controller), drop items ----------
+// 1) the old title screen is gone: anything that would show it goes to the lobby instead
+{const _ov23=ov;ov=function(t,s,maps){if(maps==1&&tab<0&&state!='camp'){try{enterCamp();return}catch(e){console.error(e)}}_ov23(t,s,maps)}}
+// 2) drop items from the raid inventory
+{const _xi=xiItems;xiItems=function(){const r=_xi(),X=RAID;if(!X)return r;
+ r.out.forEach(it=>{const c=it.id[0];
+  if(c=='p')it.dr=()=>{const i=X.pg.indexOf(it.g);if(i>=0)X.pg.splice(i,1)};
+  else if(c=='a')it.dr=()=>{X.pa.splice(+it.id.slice(1),1)};
+  else if(c=='m')it.dr=()=>{res[it.g]=Math.max(0,(res[it.g]||0)-(it.q||0))};
+  else if(c=='f')it.dr=()=>{X.fd=Math.max(0,X.fd-1)};
+  else if(c=='w')it.dr=()=>{X.wt=Math.max(0,X.wt-1)};
+  else if(c=='o')it.dr=()=>{const m=X.loot.filter(q=>q.k=='mod')[+it.id.slice(1)];const i=X.loot.indexOf(m);if(i>=0)X.loot.splice(i,1)};
+  else if(c=='k')it.dr=()=>{X.keys=Math.max(0,X.keys-1)};
+  if(it.dr){const f=it.dr,n=it.n;it.dr=()=>{f();try{bn('DROPPED '+n)}catch(e){}}}});
+ return r}}
+{const _xr=xiRender;xiRender=function(){_xr();try{const dp=$('xinv').querySelector('.xdp');if(!dp)return;const it=xiItems().out.find(q=>q.id==XIsel);if(it&&it.dr){const b=document.createElement('button');b.textContent='DROP';b.onclick=()=>{it.dr();XIsel=null;xiRender()};dp.append(b)}}catch(e){}}}
+// 3) new pause menu, reads the controller itself
+{
+const st=document.createElement('style');st.textContent=`
+#pz{position:fixed;inset:0;z-index:97;display:none;align-items:center;justify-content:center;background:var(--noise),radial-gradient(ellipse at 50% 30%,#2a1a0ff0,#0a0604fa);font-family:Teko,'Arial Narrow',sans-serif;color:#eadfc4}
+#pz.on{display:flex}
+#pz .bx{width:min(440px,92vw)}
+#pz h1{margin:0 0 4px;font:400 64px Impact,sans-serif;letter-spacing:3px;text-shadow:4px 4px 0 #000;transform:rotate(-1deg)}
+#pz .sb{color:#dba84a;font-size:22px;margin-bottom:16px}
+#pz button{display:block;width:100%;margin:8px 0;text-align:left;font:inherit;font-size:32px;letter-spacing:2px;text-transform:uppercase;padding:8px 20px;background:var(--noise),linear-gradient(170deg,#4a382a,#33261c);color:#eadfc4;border:0;clip-path:var(--r1);box-shadow:inset 0 0 0 3px #0d0905,inset 0 5px 0 #66503a;cursor:pointer}
+#pz button:nth-of-type(2n){clip-path:var(--r2)}
+#pz button:hover{background:var(--noise),linear-gradient(170deg,#d0643a,#a8431f);color:#fff}
+#pz button.padfo{transform:translateX(10px) scale(1.03)!important}
+#pz .ft{margin-top:12px;color:#cdbb97;font-size:19px}`;document.head.append(st);
+const pz=document.createElement('div');pz.id='pz';document.body.append(pz);
+const PZ={on:0,fo:0,pb:[],ax:0,ay:0,els:[]};
+const musLbl=()=>'MUSIC: '+(SV.mute?'OFF':'ON');
+function pzBuild(){
+ pz.innerHTML='<div class="bx"><h1>PAUSED</h1><div class="sb">Rest your club.</div></div>';const bx=pz.firstChild;PZ.els=[];
+ const add=(t,f)=>{const b=document.createElement('button');b.textContent=t;b.onclick=f;bx.append(b);PZ.els.push(b);return b};
+ add('RESUME',()=>resume());
+ add('GUN MODS',()=>{pzHide();$('ov').hidden=false});
+ const mb=add(musLbl(),()=>{SV.mute=SV.mute?0:1;if(mus)mus.gain.value=SV.mute?0:.35;try{save()}catch(e){}mb.textContent=musLbl()});
+ add(NET.on?'LEAVE MATCH':'LEAVE TO LOBBY',()=>exitToMenu());
+ const f=document.createElement('div');f.className='ft';f.textContent='D-PAD / STICK MOVE · A SELECT · B OR START RESUME';bx.append(f);
+ PZ.fo=0;pzFo();
+}
+function pzFo(){PZ.els.forEach((b,i)=>b.classList.toggle('padfo',padOn&&i==PZ.fo))}
+function pzShow(){pzBuild();pz.classList.add('on');PZ.on=1;$('ov').hidden=true}
+function pzHide(){pz.classList.remove('on');PZ.on=0}
+{const _p=pause;pause=function(){const was=paused;_p();if(paused&&!was)pzShow()}}
+{const _r=resume;resume=function(){pzHide();_r()}}
+setInterval(()=>{
+ if(!PZ.on){return}
+ if(state!='play'||!paused){pzHide();return}
+ let p;try{p=(navigator.getGamepads?[...navigator.getGamepads()]:[]).find(x=>x&&x.connected)}catch(e){}if(!p)return;
+ const b=p.buttons.map(x=>x.pressed||x.value>.5),e=b.map((x,i)=>x&&!PZ.pb[i]);PZ.pb=b;
+ let d=0;if(e[12])d=-1;if(e[13])d=1;
+ const ay=Math.abs(p.axes[1])>.6?Math.sign(p.axes[1]):0;if(ay&&ay!==PZ.ay)d=ay;PZ.ay=ay;
+ if(b.some(x=>x))padOn=true;
+ if(d){PZ.fo=(PZ.fo+d+PZ.els.length)%PZ.els.length;pzFo()}else if(e.some(x=>x))pzFo();
+ if(e[0]&&PZ.els[PZ.fo])PZ.els[PZ.fo].click();
+},40);
+}
+
+// ---------- v27: auto-fit menus so nothing needs scrolling ----------
+{
+const st=document.createElement('style');st.textContent=`
+#xl .xpn,#xe .xpn,.xiv{max-height:none!important;overflow:visible!important}
+@media (max-height:820px){#cshop .cd2{min-height:160px}#cshop .cd2 .ic{height:58px;font-size:36px;margin:4px}#cshop .cd2 .n{font-size:22px}#cshop .cd2 .s{font-size:15px}#cshop .shg{grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px}#cshop .shh h1{font-size:44px}}
+@media (max-height:680px){#cshop .cd2{min-height:128px}#cshop .cd2 .ic{display:none}#cshop .shg{grid-template-columns:repeat(auto-fill,minmax(180px,1fr))}}`;
+document.head.append(st);
+const SIG=new Map();
+function fitT(el,aw,ah,org){
+ const sg=el.innerHTML.length+'|'+innerWidth+'x'+innerHeight;if(SIG.get(el)===sg)return;
+ el.style.transform='';const w=el.offsetWidth,h=el.offsetHeight;if(!w||!h)return;
+ const z=Math.min(1,ah/h,aw/w);el.style.transformOrigin=org;el.style.transform=z<.995?'scale('+z.toFixed(3)+')':'';SIG.set(el,sg)}
+setInterval(()=>{try{
+ const o=$('ov'),mp=$('mp');
+ if(o&&!o.hidden&&mp){const sg=mp.innerHTML.length+'|'+innerWidth+'x'+innerHeight+'|'+$('t').textContent;if(SIG.get(mp)!==sg){mp.style.transform='';const w=mp.offsetWidth,h=mp.offsetHeight,ah=o.clientHeight-mp.offsetTop-14,aw=o.clientWidth-mp.offsetLeft-14;if(w&&h){const z=Math.min(1,ah/h,aw/w);mp.style.transformOrigin='top left';mp.style.transform=z<.995?'scale('+z.toFixed(3)+')':''}SIG.set(mp,sg)}}
+ const A=innerWidth*.96,B=innerHeight*.95;
+ [['#xl.on .xpn'],['#xe.on .xpn'],['#xinv.on .xiv']].forEach(([q])=>{const e=document.querySelector(q);if(e)fitT(e,A,B,'center center')});
+}catch(e){}},250);
+}
 
 applyCX();if(location.protocol.startsWith('http'))setTimeout(netConnect,300);
 build(0);ov('UGH-STRIKE','Cave-bros vs BOOM-STICKS! Pick a mode and a rock-place:',1);
