@@ -109,6 +109,15 @@ const server = http.createServer((req, res) => {
     });
     return;
   }
+  const APPF = { '/manifest.webmanifest': 'application/manifest+json', '/sw.js': 'text/javascript', '/icon-192.png': 'image/png', '/icon-512.png': 'image/png', '/icon-maskable.png': 'image/png' };
+  if (APPF[url]) {
+    fs.readFile(path.join(__dirname, 'app', url.slice(1)), (err, data) => {
+      if (err) { res.writeHead(404, { 'content-type': 'text/plain' }); res.end('not found'); return; }
+      res.writeHead(200, { 'content-type': APPF[url], 'cache-control': url === '/sw.js' ? 'no-cache' : 'public, max-age=86400', 'service-worker-allowed': '/' });
+      res.end(data);
+    });
+    return;
+  }
   res.writeHead(404, { 'content-type': 'text/plain' }); res.end('not found');
 });
 
