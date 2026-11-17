@@ -2464,7 +2464,7 @@ const st=document.createElement('style');st.textContent=`
 #lb .bot{position:absolute;left:14px;right:14px;bottom:10px;display:flex;justify-content:space-between;align-items:center;font-size:20px}
 #lb .bot button{background:#f1f1ee;color:#111;border:0;border-radius:20px;font-size:22px;padding:0 18px;margin-right:8px}
 #lb .bot span{color:#cfd3cf;text-shadow:0 1px 3px #000}
-#lb .tag{position:absolute;left:50%;top:15%;transform:translateX(-50%);background:#0009;border:1px solid #fff4;padding:0 12px;font-size:20px;border-radius:12px}
+#lb .tag{position:absolute;transform:translate(-50%,-100%);background:#0009;border:1px solid #fff4;padding:0 12px;font-size:20px;border-radius:12px}
 #lb .pop{position:absolute;left:50%;top:80px;transform:translateX(-50%);width:420px;display:none}
 #lb .pop button{display:block;width:calc(100% - 24px);margin:6px 12px;background:#1a201b;border:1px solid #fff3;color:#f1f1ee;font-size:26px;text-align:left;padding:4px 14px}
 #lb .pop button small{display:block;font-size:16px;color:#aeb4ae}
@@ -2472,7 +2472,6 @@ const st=document.createElement('style');st.textContent=`
 #lb button:hover{filter:brightness(1.15)}`;document.head.append(st);
 const lb=document.createElement('div');lb.id='lb';
 lb.innerHTML=`<div class="top"><div class="tabs"><i>LB</i><button data-t="0" class="on">PLAY</button><button data-t="1">WORKSHOP</button><button data-t="2">RAIDER</button><button data-t="3">TRADERS</button><button data-t="4">PASS</button><button data-t="5">ONLINE</button><i>RB</i></div><div class="cur" id="lbc"></div></div>
-<div class="tag" id="lbtag"></div>
 <div class="left"><div class="pnl"><h3>FEATS</h3><div id="lbf"></div></div><div class="pnl"><h3>WARDEN</h3><div id="lbw"></div></div></div>
 <div class="pop pnl" id="lbp"><h3>TRADERS</h3><div id="lbpl"></div></div>
 <div class="right"><div class="pnl"><h3>CHOOSE YOUR DESTINATION</h3><div class="dest" id="lbd"></div><div class="dsc" id="lbds"></div><button class="play" id="lbplay">PLAY</button></div></div>
@@ -2499,8 +2498,20 @@ function refresh(){
  $('lbf').innerHTML=act.slice(0,3).map(o=>`<div class="ft"><b>${o.q.n}<span class="n">${o.p}/${o.q.t}</span></b><small>${o.q.d}</small><div class="bar"><i style="width:${Math.min(100,o.p/o.q.t*100)}%"></i></div></div>`).join('')||'<div class="ft"><b>ALL FEATS DONE</b></div>';
  const rd=act.filter(o=>o.p>=o.q.t).length,lo=WLV[l-1]||0,nx=WLV[l];
  $('lbw').innerHTML=`<div class="ft"><b>WARDEN LEVEL ${l}<span class="n">${nx!=null?(SV.wl||0)+'/'+nx:'MAX'}</span></b><small>${rd?rd+' FEAT'+(rd>1?'S':'')+' READY TO CLAIM':'Raid to earn Warden XP'}</small><div class="bar"><i style="width:${nx!=null?Math.min(100,((SV.wl||0)-lo)/(nx-lo)*100):100}%"></i></div></div>`;
- $('lbtag').textContent='CAVE BRO · LVL '+l}catch(e){}
+ const tg=$('lbtag');if(tg)tg.textContent='CAVE BRO \u00B7 LVL '+l}catch(e){}
  $('lbh').textContent=padOn?'LB/RB TABS · D-PAD MOVE · A SELECT · B CLOSE':'';
+}
+
+const OUT=[{skin:0xc89878,shirt:0x6a4a30,pants:0x3a2a1a,hair:0x2a1a10,beard:1},{skin:0xb88060,shirt:0x8a5a30,pants:0x2a2420,hair:0x1a1210,beard:1,sc:1.06},{skin:0xe0b898,shirt:0x4a5a3a,pants:0x3a3040,hair:0x7a5a3a}];
+function squad(){
+ let others=[];try{if(NET.code&&NET.players)others=NET.players.filter(p=>p.id!==NET.id).slice(0,2)}catch(e){}
+ const key=others.map(p=>p.id+':'+p.name).join('|');if(key===LB.key)return;LB.key=key;
+ LB.fig.forEach(f=>scene.remove(f.n));LB.fig=[];(LB.tags||[]).forEach(t=>t.d.remove());LB.tags=[];
+ const n=others.length,pos=n==0?[[0,.35,0]]:n==1?[[-1.2,.2,.18],[1.2,.2,-.18]]:[[-1.9,-.35,.28],[0,.35,0],[1.9,-.35,-.28]];
+ const order=n==0?[null]:n==1?[null,others[0]]:[others[0],null,others[1]];
+ order.forEach((o,i)=>{try{const m=mkNPC(OUT[(o?others.indexOf(o)+1:0)%3]);m.userData.live=1;const p=pos[i];m.position.set(p[0],.12,p[1]);m.rotation.y=p[2];scene.add(m);LB.fig.push({n:m,y:.12,ph:i*1.7,r:p[2],x:p[0],z:p[1]});
+  const d=document.createElement('div');d.className='tag';d.style.top='';d.textContent=o?String(o.name).slice(0,16):'';if(!o)d.id='lbtag';lb.append(d);LB.tags.push({d,x:p[0],z:p[1],me:!o})}catch(e){console.error(e)}});
+ refresh();
 }
 // ---- 3D stage ----
 function stage(){
@@ -2536,9 +2547,7 @@ function stage(){
  for(let a=0;a<7;a++)bx(.6,.5,.6,0x6a6560,Math.cos(a)*1.1,.25,-5+Math.sin(a)*1.1);
  const L=(c,i,r,x,y,z)=>{const l=new THREE.PointLight(c,i,r);l.position.set(x,y,z);scene.add(l);return l};
  LB.fl=[L(0xff9a40,2.4,22,0,2,-4.3),L(0xffc890,1.3,16,-6,5,2),L(0xffb070,1.3,16,6,5,2),L(0xffe0b0,.9,12,0,3.5,5)];
- // the squad
- const O=[{skin:0xc89878,shirt:0x6a4a30,pants:0x3a2a1a,hair:0x2a1a10,beard:1},{skin:0xb88060,shirt:0x8a5a30,pants:0x2a2420,hair:0x1a1210,beard:1,sc:1.06},{skin:0xe0b898,shirt:0x4a5a3a,pants:0x3a3040,hair:0x7a5a3a}];
- [[-1.9,-.35,.28],[0,.35,0],[1.9,-.35,-.28]].forEach((p,i)=>{try{const n=mkNPC(O[i]);n.userData.live=1;n.position.set(p[0],.12,p[1]);n.rotation.y=p[2];scene.add(n);LB.fig.push({n,y:.12,ph:i*1.7,r:p[2]})}catch(e){console.error(e)}});
+ LB.key=null;squad();
  scene.updateMatrixWorld(true);
  P.x=0;P.z=0;
 }
@@ -2566,6 +2575,7 @@ campStep=function(dt){
   if(LB.fl[0])LB.fl[0].intensity=2.2+Math.sin(t*17)*.25+Math.sin(t*7)*.2;
   cam.position.set(Math.sin(t*.25)*.35,1.45+Math.sin(t*.3)*.04,6.3);cam.lookAt(Math.sin(t*.25)*.1,1.3,0);
  }catch(e){}
+ try{squad();(LB.tags||[]).forEach(g=>{const v=new THREE.Vector3(g.x,2.35,g.z).project(cam);g.d.style.left=((v.x+1)/2*innerWidth)+'px';g.d.style.top=((1-v.y)/2*innerHeight)+'px'})}catch(e){}
  LB.rt=(LB.rt||0)+dt;if(LB.rt>1){LB.rt=0;refresh()}
  pad();
 };
@@ -2586,8 +2596,91 @@ function pad(){
  if(g[1]&&$('lbp').style.display=='block'){$('lbp').style.display='none';setFo($('lbplay'))}
 }
 // lobby visible only while in the camp state
-setInterval(()=>{if(state=='play')LB.on=0;lb.style.display=(state=='camp'&&LB.on)?'block':'none'},400);
+setInterval(()=>{if(state=='play'){LB.on=0;try{if(EXT.on&&mus&&mus.gain.value>0)mus.gain.value=0}catch(e){}}lb.style.display=(state=='camp'&&LB.on)?'block':'none'},400);
 setTimeout(()=>{try{if(state!='play'&&!LB.on)enterCamp()}catch(e){console.error(e)}},500);
+})();
+
+// ---------- v24: unified menu skin + new trader screens ----------
+(function(){
+const st=document.createElement('style');st.textContent=`
+:root{--ly:#f5b400}
+#ov,#cshop,#xl,#xe{font-family:Teko,'Arial Narrow',sans-serif!important}
+/* main menu screens (play / armory / shop / pass / online / account / settings) */
+#ov{background:radial-gradient(ellipse at 30% 20%,#1c2018f2,#07090af7 70%)!important;align-items:stretch!important;padding:0 0 20px!important;gap:0!important;text-align:left!important}
+#ov #t{font-size:54px!important;letter-spacing:5px;margin:14px 28px 0!important;color:#f1f1ee;text-shadow:none!important;border-left:8px solid var(--ly);padding-left:14px;line-height:1}
+#ov #sb{margin:2px 28px 6px!important;color:#aeb4ae!important;font-size:20px}
+#ov #mp{align-items:flex-start!important;padding:0 28px;width:auto!important}
+#ov .tabs{justify-content:flex-start!important;gap:4px;margin:6px 0 14px!important}
+#ov .tabs .mb,#ov .tabs button{background:none!important;border:0!important;border-radius:20px!important;box-shadow:none!important;color:#e6e2d6!important;font-size:24px!important;letter-spacing:1px;padding:2px 18px!important;margin:0!important;opacity:.85;transform:none!important}
+#ov .tabs .mb.on,#ov .tabs button.on{background:#f1f1ee!important;color:#111!important;opacity:1;outline:0!important}
+#ov .mb{background:rgba(14,18,15,.92)!important;border:1px solid #ffffff22!important;border-left:5px solid var(--ly)!important;border-radius:0!important;color:#f1f1ee!important;font-size:25px!important;letter-spacing:1px;text-align:left;padding:7px 16px!important;box-shadow:none!important;text-transform:uppercase}
+#ov .mb small{text-transform:none;color:#aeb4ae;font-size:16px!important;opacity:1!important}
+#ov .mb:hover:not(:disabled){background:var(--ly)!important;color:#111!important;transform:none!important;filter:none!important}
+#ov .mb:hover:not(:disabled) small{color:#222}
+#ov .mb.on{outline:0!important;background:#2a2410!important;border-color:var(--ly)!important}
+#ov .mb:disabled{opacity:.4}
+#ov .mb.big{width:min(300px,92vw)!important}
+#ov .grid{gap:8px!important}
+#ov .hint{color:#bfc4bf!important}
+#ov input,#ov select{font-family:inherit;font-size:22px;background:#0b0e0c;color:#f1f1ee;border:1px solid #fff4;padding:4px 10px}
+/* trader screens */
+#cshop{position:fixed!important;inset:0!important;left:0!important;top:0!important;transform:none!important;width:auto!important;max-width:none!important;max-height:none!important;padding:0!important;border:0!important;background:radial-gradient(ellipse at 70% 0%,#1d2218f5,#06080af8 75%)!important;z-index:96!important;overflow:hidden!important}
+#cshop .shp{display:flex;flex-direction:column;height:100%;color:#f1f1ee}
+#cshop .shh{display:flex;align-items:center;gap:18px;padding:12px 28px;border-bottom:1px solid #ffffff1c;background:linear-gradient(#000a,#0000)}
+#cshop .shh h1{margin:0;font-size:52px;letter-spacing:5px;font-weight:600;line-height:1;border-left:8px solid var(--ly);padding-left:14px}
+#cshop .shh q{display:block;color:#aeb4ae;font-size:19px;padding-left:22px;quotes:none}
+#cshop .shh .sp{flex:1}
+#cshop .shc{background:#0009;border:1px solid #fff3;border-radius:16px;padding:0 16px;font-size:28px}
+#cshop .shx{font:inherit;font-size:24px;letter-spacing:2px;background:#f1f1ee;color:#111;border:0;border-radius:18px;padding:2px 20px;cursor:pointer}
+#cshop .shb{display:flex;flex:1;min-height:0}
+#cshop nav{width:230px;padding:16px 0 16px 28px;display:flex;flex-direction:column;gap:6px;overflow:auto}
+#cshop nav button{font:inherit;font-size:25px;letter-spacing:1px;text-align:left;background:rgba(14,18,15,.9);color:#e6e2d6;border:1px solid #fff2;border-left:5px solid #5d6761;padding:5px 14px;cursor:pointer;text-transform:uppercase}
+#cshop nav button.on{border-left-color:var(--ly);background:#2a2410;color:#fff}
+#cshop nav button small{display:block;font-size:15px;color:#aeb4ae;text-transform:none}
+#cshop .shg{flex:1;overflow:auto;padding:16px 28px;display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px;align-content:start}
+#cshop .cd2{background:rgba(14,18,15,.94);border:1px solid #ffffff1c;display:flex;flex-direction:column;min-height:190px}
+#cshop .cd2.r1{border-top:4px solid #5d6761}#cshop .cd2.r2{border-top:4px solid #4aa8ff}#cshop .cd2.r3{border-top:4px solid #f2a900}#cshop .cd2.o{border-top-color:#4fa66a}
+#cshop .cd2 .ic{height:78px;display:flex;align-items:center;justify-content:center;gap:5px;font-size:46px;background:linear-gradient(145deg,#1b211c,#0c0f0d)}
+#cshop .cd2 .ic span{width:34px;height:34px;border:2px solid #0008;border-radius:4px}
+#cshop .cd2 .n{font-size:24px;letter-spacing:1px;padding:6px 12px 0;text-transform:uppercase;line-height:1.05}
+#cshop .cd2 .s{font-size:16px;color:#aeb4ae;padding:2px 12px 6px;flex:1;line-height:1.1}
+#cshop .cd2 button{font:inherit;font-size:24px;letter-spacing:2px;background:#f1f1ee;color:#111;border:0;padding:3px 0;cursor:pointer;text-transform:uppercase}
+#cshop .cd2 button:disabled{background:#2c322d;color:#8f968f;cursor:default}
+#cshop .cd2 button:hover:not(:disabled),#cshop nav button:hover,#cshop .shx:hover,#cshop button.padsel{background:var(--ly)!important;color:#111!important;box-shadow:inset 0 0 0 2px #fff}
+/* raid / warden screen */
+#xl{background:radial-gradient(ellipse at 30% 10%,#1c2018f5,#06080af8 75%)!important}
+#xl .xpn{border:0!important;background:none!important}
+#xl h1{letter-spacing:6px;border-left:8px solid var(--ly);padding-left:14px}
+#xl .xtb button{background:none!important;border:0!important;border-radius:20px!important;color:#e6e2d6!important;font-size:24px!important;padding:2px 18px!important;letter-spacing:1px}
+#xl .xtb button.on{background:#f1f1ee!important;color:#111!important}
+#xl .xrow{background:rgba(14,18,15,.92)!important;border:1px solid #ffffff1f!important;border-left:5px solid var(--ly)!important;border-radius:0!important}
+#xl button:hover:not(:disabled){background:var(--ly);color:#111}`;
+document.head.append(st);
+const GL=[[/ARMOR|PLATE|VEST|HELM/,'\u{1F6E1}'],[/GUN|WEAPON|CLUB|SLING|BOW|SPEAR|ROCK|BONK/,'\u{2694}'],[/AMMO|STONE/,'\u{1FAA8}'],[/HEAL|MED|BANDAGE|FOOD|DRINK|MEAT/,'\u{1F356}'],[/OUTFIT|SKIN|FUR|CLOTH|HAT|LOOK|DYE|COLOR|PAINT/,'\u{1F9F6}'],[/FIRE|FORGE|UPGRADE|MOD/,'\u{1F525}']];
+const glyph=(h,n)=>{const t=(h+' '+n).toUpperCase();for(const g of GL)if(g[0].test(t))return g[1];return '\u{1F9B4}'};
+shopRender=function(){
+ const w=CAMP.who,el=$('cshop');let secs=[];try{secs=shopItems(w)}catch(e){console.error(e)}
+ CAMP.sec=(CAMP.secW===w?CAMP.sec:0)||0;CAMP.secW=w;CAMP.sec=Math.min(CAMP.sec,Math.max(0,secs.length-1));
+ const sy=el.querySelector('.shg')?el.querySelector('.shg').scrollTop:0;
+ el.innerHTML='';const root=document.createElement('div');root.className='shp';
+ const hd=document.createElement('div');hd.className='shh';
+ const t=document.createElement('div');const h1=document.createElement('h1');h1.textContent=TITLE[w]||w;const q=document.createElement('q');q.textContent='“'+(QUOTE[w]||'')+'”';t.append(h1,q);
+ const sp=document.createElement('div');sp.className='sp';const bn=document.createElement('div');bn.className='shc';bn.textContent='\u{1F9B4} '+SV.bones;
+ const cl=document.createElement('button');cl.className='shx';cl.textContent='BACK';cl.onclick=shopClose;hd.append(t,sp,bn,cl);
+ const bd=document.createElement('div');bd.className='shb';const nav=document.createElement('nav');
+ secs.forEach((sc,i)=>{const b=document.createElement('button');b.className=i==CAMP.sec?'on':'';b.innerHTML=String(sc.h)+'<small>'+sc.list.length+' items</small>';b.onclick=()=>{CAMP.sec=i;shopRender()};nav.append(b)});
+ const gr=document.createElement('div');gr.className='shg';
+ const sc=secs[CAMP.sec];
+ if(sc)sc.list.forEach(it=>{
+  const own=it.st=='own'||it.st=='eqd'||it.st=='equip',p=it.p||0,c=document.createElement('div');c.className='cd2 '+(own?'o':p>=300?'r3':p>=100?'r2':'r1');
+  const ic=document.createElement('div');ic.className='ic';
+  if(it.chips)it.chips.forEach(x=>{const d=document.createElement('span');d.style.background='#'+x.toString(16).padStart(6,'0');ic.append(d)});else ic.textContent=glyph(sc.h,it.n);
+  const n=document.createElement('div');n.className='n';n.textContent=it.n;const s=document.createElement('div');s.className='s';s.textContent=it.sub||'';
+  const b=document.createElement('button');
+  if(it.st=='buy'){b.textContent='BUY  \u{1F9B4} '+it.p;b.disabled=SV.bones<it.p;b.onclick=it.act}else if(it.st=='own'){b.textContent=it.own||'OWNED';b.disabled=true}else if(it.st=='equip'){b.textContent='WEAR / EQUIP';b.onclick=it.act}else if(it.st=='eqd'){b.textContent='EQUIPPED';b.disabled=true}else{b.textContent=it.lk;b.disabled=true}
+  c.append(ic,n,s,b);gr.append(c)});
+ bd.append(nav,gr);root.append(hd,bd);el.append(root);el.style.display='block';gr.scrollTop=sy;CAMP.si=Math.min(CAMP.si||0,99);
+};
 })();
 
 applyCX();if(location.protocol.startsWith('http'))setTimeout(netConnect,300);
