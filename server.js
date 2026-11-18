@@ -194,13 +194,15 @@ const isOwner = n => !!OWNER && String(n).toLowerCase() === OWNER;
 console.log('[owner check] OWNER_NAME ' + (OWNER ? 'is set to "' + OWNER + '"' : 'is NOT set - owner unlock is off'));
 function roomInfo(r) { return { t: 'room', code: r.code, host: r.host.id, players: r.players.map(p => ({ id: p.id, name: p.name, gold: !!(p.user && isOwner(p.name)) })), mode: r.mode, map: r.map, started: r.started }; }
 function bcastRoom(r) { const m = roomInfo(r); r.players.forEach(p => send(p, m)); }
+const RAID_MAX = 8, RAID_T = 2700;
 function leaveRoom(c) {
   const r = c.room; if (!r) return;
   c.room = null;
   r.players = r.players.filter(p => p !== c);
   if (!r.players.length) { rooms.delete(r.code); return; }
   if (r.host === c) {
-    if (r.started) { // the host runs the co-op simulation, so the match cannot outlive them
+    if (r.raid) r.host = r.players[0];
+    else if (r.started) { // the host runs the co-op simulation, so the match cannot outlive them
       r.players.forEach(p => { p.room = null; send(p, { t: 'closed', m: 'HOST LEFT THE ROOM' }); });
       rooms.delete(r.code); return;
     }
@@ -289,6 +291,21 @@ function onMsg(c, text) {
       if (c.room === r) break;
       leaveRoom(c); r.players.push(c); c.room = r; bcastRoom(r); break;
     }
+    case 'raidjoin': { // players never create raids: they are dropped into one that is still running, or a fresh one when all are full
+      if (!c.said) return;
+      leaveRoom(c);
+      const now = Date.now(); let r = null;
+      rooms.forEach(q => { if (q.raid && q.players.length < RAID_MAX && now - q.t0 < (RAID_T - 300) * 1000 && (!r || q.players.length > r.players.length)) r = q; });
+      if (!r) {
+        if (rooms.size >= MAX_ROOMS) { send(c, { t: 'err', m: 'SERVER FULL' }); break; }
+        const code = newCode(); if (!code) { send(c, { t: 'err', m: 'TRY AGAIN' }); break; }
+        r = { code, host: c, players: [], mode: 4, map: 0, started: true, raid: true, seed: crypto.randomInt(1, 2 ** 31 - 1), t0: now };
+        rooms.set(code, r);
+      }
+      r.players.push(c); c.room = r;
+      send(c, { t: 'start', mode: 4, map: 0, seed: r.seed, raid: 1, left: Math.max(120, RAID_T - Math.floor((now - r.t0) / 1000)) });
+      bcastRoom(r); break;
+    }
     case 'leave': leaveRoom(c); break;
     case 'cfg': {
       const r = c.room; if (!r || r.host !== c || r.started) break;
@@ -302,7 +319,7 @@ function onMsg(c, text) {
       r.players.forEach(p => send(p, msg)); bcastRoom(r); break;
     }
     case 'end': {
-      const r = c.room; if (!r || r.host !== c || !r.started) break;
+      const r = c.room; if (!r || r.raid || r.host !== c || !r.started) break;
       r.started = false; bcastRoom(r); break;
     }
     case 'm': { // relay to the rest of the room (or one player)
@@ -315,6 +332,7 @@ function onMsg(c, text) {
   }
 }
 
+setInterval(() => { const now = Date.now(); rooms.forEach(r => { if (r.raid && now - r.t0 > (RAID_T + 90) * 1000) { r.players.forEach(p => { p.room = null; send(p, { t: 'closed', m: 'RAID ENDED' }); }); rooms.delete(r.code); } }); }, 30000);
 setInterval(() => conns.forEach(c => { c.cnt = 0; }), 1000);
 setInterval(() => conns.forEach(c => {
   if (!c.alive) { c.sock.destroy(); return; }
